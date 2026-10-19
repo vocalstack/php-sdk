@@ -1,0 +1,37 @@
+{
+    "name": "vocalstack/sdk",
+    "description": "VocalStack speech API SDK for PHP: one client grouped by resource, file and link transcription, realtime WebSocket streaming.",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["vocalstack", "speech", "speech-to-text", "transcription", "realtime", "websocket", "translation", "captions", "api", "sdk"],
+    "homepage": "https://vocalstack.com",
+    "support": {
+        "source": "https://github.com/vocalstack/php-sdk"
+    },
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5",
+        "phrity/websocket": "^3"
+    },
+    "suggest": {
+        "ext-curl": "The default HTTP client (VocalStack\\Http\\CurlHttpClient); without it pass your own VocalStack\\Http\\HttpClient",
+        "phrity/websocket": "Realtime sessions, publishing and event sockets (^3)"
+    },
+    "autoload": {
+        "psr-4": {
+            "VocalStack\\": "src/"
+        },
+        "files": ["src/functions.php"]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "VocalStack\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
