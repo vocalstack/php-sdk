@@ -1,7 +1,6 @@
 <?php
 
-// A one-connection WebSocket server for the tests, the twin of
-// conformance/replay-server.mjs: it plays a scenario's frames
+// A one-connection WebSocket server for the tests: it plays a scenario's frames
 // ({"$waitEof": true} waits for the client's eof, {"$close": true} closes,
 // {"$delayMs": n} sleeps), or refuses the upgrade (rejectUpgrade).
 //

@@ -33,14 +33,6 @@ composer require vocalstack/sdk          # PHP 8.1 or newer, ext-json; ext-curl 
 composer require phrity/websocket:^3     # only for realtime sessions and live audio (program 4)
 ```
 
-Before the package is published, install it from a local checkout of the
-repository with a Composer path repository:
-
-```sh
-composer config repositories.vocalstack path /absolute/path/to/transcribe/sdks/php
-composer require vocalstack/sdk:@dev
-```
-
 Live transcription (program 4) also needs `ffmpeg` on PATH.
 
 Speaker numbers start at 0. A speaker of `-1` means speaker labels were off
@@ -57,8 +49,7 @@ for that transcription, so print the text without a speaker.
 - Scopes: `read` (read transcripts, search, export), `write` and
   `recordings:publish` (create transcriptions, stream live audio), or `*`.
 - Base URL: `https://api.vocalstack.com` (the default). Override it with
-  `VOCALSTACK_BASE_URL`: `http://127.0.0.1:8090` for a local server,
-  `https://api.e2e.vocalstack.com` for e2e.
+  `VOCALSTACK_BASE_URL` (for example, a local or staging server).
 
 Every program below opens the client the same way (a null base URL means the
 default):
