@@ -22,6 +22,9 @@ associative arrays with the wire's camelCase keys (`$job['recordingId']`).
   `$vs->jobs->wait($recordingId)` polls it until it is `done` or `failed`
   (`onProgress: fn (array $job) => ...` sees each read: `$job['state']`,
   `$job['progress']['pct']`).
+- A **batch** is many files transcribed together for less than one
+  transcription each: `$vs->batches->create()`, `addFile`/`addUrl` per file,
+  `start`, then `wait` (section 6).
 - A **broadcast** is a link listeners open to follow a live recording.
 - A **realtime session** (`$vs->realtime`) is a socket you stream audio into
   and read the transcript from. Nothing is stored. "Session" means only this.
@@ -97,7 +100,9 @@ use VocalStack\VocalStack;
 $path = $argv[1];  // mp3, wav, flac, ogg, m4a, mp4 ...
 $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
 $tx = $vs->transcriptions->create(
-    ['settings' => ['spokenLanguage' => 'en', 'speakerLabels' => 'on']],  // both optional; "auto" | "on" | "off"
+    ['settings' => ['spokenLanguage' => 'en', 'speakerLabels' => 'on']],  // both optional; "off" (default) | "auto" | "on"
+    // Off unless asked for: settings summary, title, summaryTranslations,
+    // voice (spoken translations), and 'shareLink' => true (a public share link).
     file: $path,  // a path, a stream resource, or VocalStack\Upload::bytes($data, 'name.mp3'); streamed, not read whole
 );
 $job = $vs->jobs->wait($tx['job']['recordingId']);
@@ -187,6 +192,34 @@ foreach ($res['hits'] as $h) {
 }
 ```
 
+## 6. A batch of files
+
+Many files at once cost less as a batch: one create, one minimum charge for
+the whole batch. Its files get transcripts, exports and speaker labels (when
+`settings.speakerLabels` asks), never a summary, title, share link or voices.
+
+```php
+<?php
+require 'vendor/autoload.php';
+
+use VocalStack\VocalStack;
+
+$vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
+$batch = $vs->batches->create(['name' => 'Interviews', 'settings' => ['spokenLanguage' => 'en']]);
+foreach (array_slice($argv, 1) as $path) {
+    $vs->batches->addFile($batch['id'], file: $path);  // or addUrl($batch['id'], $url)
+}
+$vs->batches->start($batch['id']);
+$done = $vs->batches->wait($batch['id']);  // done (or stopped); check $done['counts']['failed']
+foreach ($done['files'] ?? [] as $tx) {
+    if (($tx['job']['state'] ?? null) === 'done') {
+        $snap = $vs->recordings->transcript($tx['job']['recordingId']);
+        echo $tx['name'], ': ', implode(' ', array_column($snap['sentences'], 'text')), "\n";
+    }
+}
+// $vs->batches->export($batch['id'], 'srt') is every finished transcript in one zip.
+```
+
 ## Errors
 
 A failed call throws `VocalStack\VocalStackException` with `->errorCode` (also
@@ -227,7 +260,8 @@ try {
 - The other groups: `$vs->transcriptions` (`list`, `get`, `update`, `archive`,
   `restore`, `purge`, `listShareLinks`, `createShareLink`), `$vs->recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe`),
-  `$vs->corrections`, `$vs->shareLinks`, `$vs->voices`, `$vs->broadcasts`,
+  `$vs->batches` (`create`, `addFile`, `addUrl`, `start`, `wait`, `get`, `list`,
+  `export`, `stop`, `delete`), `$vs->corrections`, `$vs->shareLinks`, `$vs->voices`, `$vs->broadcasts`,
   `$vs->me`, `$vs->connect` (`token`; PKCE helpers in `VocalStack\Connect\Pkce`),
   `$vs->billing` (`get`, `usage`), `$vs->languages`, `$vs->rtmp`,
   `$vs->events`, `$vs->meta`. Each method is its operation's name in the

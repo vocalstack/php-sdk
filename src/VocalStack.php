@@ -7,6 +7,7 @@ namespace VocalStack;
 use VocalStack\Http\CurlHttpClient;
 use VocalStack\Http\HttpClient;
 use VocalStack\Http\Transport;
+use VocalStack\Resources\Batches;
 use VocalStack\Resources\Billing;
 use VocalStack\Resources\Broadcasts;
 use VocalStack\Resources\Connect;
@@ -48,6 +49,7 @@ final class VocalStack
     public readonly Realtime $realtime;
     public readonly Broadcasts $broadcasts;
     public readonly Transcriptions $transcriptions;
+    public readonly Batches $batches;
     public readonly Recordings $recordings;
     public readonly Jobs $jobs;
     public readonly Corrections $corrections;
@@ -97,6 +99,7 @@ final class VocalStack
         $this->realtime = new Realtime($t, $readyDeadline);
         $this->broadcasts = new Broadcasts($t);
         $this->transcriptions = new Transcriptions($t);
+        $this->batches = new Batches($t);
         $this->recordings = new Recordings($t, $readyDeadline);
         $this->jobs = new Jobs($t);
         $this->corrections = new Corrections($t);
