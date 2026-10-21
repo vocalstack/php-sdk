@@ -26,7 +26,7 @@ Three SDKs, one client each (`VocalStack`), grouped by resource: `vs.transcripti
 composer require vocalstack/sdk
 ```
 
-The SDK installs from Packagist. With HTTP + WebSocket there is nothing to install: the programs use curl and jq, and Node 22's built-in WebSocket (any WebSocket client works).
+Each SDK installs from its registry: npm, PyPI or Packagist. With HTTP + WebSocket there is nothing to install: the programs use curl and jq, and Node 22's built-in WebSocket (any WebSocket client works).
 
 ## 3. Transcribe a file
 
