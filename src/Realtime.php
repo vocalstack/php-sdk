@@ -63,6 +63,21 @@ final class Realtime extends Group
     }
 
     /**
+     * A person is using a screen that can start a live transcription, so the
+     * one they start next is ready at once. Send it on real use, at most
+     * every 30 seconds, and at once when the selected spoken language
+     * changes (null: auto-detect).
+     */
+    public function warm(string $clientKind, bool $canStart, ?string $spokenLanguage = null): void
+    {
+        $body = ['clientKind' => $clientKind, 'canStart' => $canStart];
+        if ($spokenLanguage !== null) {
+            $body['spokenLanguage'] = $spokenLanguage;
+        }
+        $this->t->json('POST', '/v1/realtime/warm', json: $body);
+    }
+
+    /**
      * Stream an encoded file (mp3, wav, flac, ogg, m4a...; a path, an
      * `Upload::bytes(...)` or a stream) through a realtime session and
      * collect the transcript. Nothing is stored; for a stored, shareable
