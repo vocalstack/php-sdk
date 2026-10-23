@@ -108,6 +108,35 @@ final class RealtimeTest extends TestCase
         iterator_to_array($session->events());
     }
 
+    public function testASocketThatClosesWithNoSessionDoneIsEngineLost(): void
+    {
+        // The engine's machine is gone: the socket closes with no
+        // `session.done` and no `error` frame.
+        $server = new WsServer(['frames' => [['type' => 'session.ready'], self::committed(0, 'before the loss'), ['$close' => true]]]);
+        $session = RealtimeSession::connect('s1', $server->url());
+        $seen = [];
+        try {
+            foreach ($session as $ev) {
+                $seen[] = $ev['segment']['text'];
+            }
+            $this->fail('a lost engine ended quietly');
+        } catch (VocalStackException $e) {
+            $this->assertSame('engine_lost', $e->errorCode);
+            $this->assertTrue($e->retryable);
+        }
+        $this->assertSame(['before the loss'], $seen, 'what came before the loss is still read');
+        $this->assertNull($session->doneReason);
+        $this->assertTrue($session->ended());
+    }
+
+    public function testASocketClosedByCloseEndsQuietly(): void
+    {
+        $server = new WsServer(['frames' => [['type' => 'session.ready'], ['$waitEof' => true], self::done()]]);
+        $session = RealtimeSession::connect('s1', $server->url());
+        $session->close();
+        $this->assertSame([], iterator_to_array($session->events()));
+    }
+
     public function testWhatTheClientSends(): void
     {
         $server = new WsServer(['frames' => [['type' => 'session.ready'], ['$waitEof' => true], self::done()]]);

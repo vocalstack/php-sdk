@@ -289,8 +289,9 @@ final class RealtimeSession implements \IteratorAggregate
 
     /**
      * The transcript events until the session ends: `session.done` (see
-     * `doneReason`, `stats`) or the socket closing end it; an `error` frame
-     * throws VocalStackException.
+     * `doneReason`, `stats`) or `close()` end it; an `error` frame throws
+     * VocalStackException, and so does the socket closing before either
+     * (`engine_lost`).
      *
      * @return \Generator<int, array<string, mixed>>
      */
@@ -303,10 +304,12 @@ final class RealtimeSession implements \IteratorAggregate
             }
             if ($step === self::TIMEOUT) {
                 if ($this->pinged) {
-                    // Keepalive unanswered: the connection is gone.
+                    // Keepalive unanswered: the connection is gone, and
+                    // the engine with it.
                     $this->closed = true;
                     $this->ws->close(1011);
-                    return;
+                    $this->error = self::engineLost();
+                    throw $this->error;
                 }
                 $this->pinged = $this->ws->ping();
                 continue;
@@ -380,8 +383,12 @@ final class RealtimeSession implements \IteratorAggregate
         $this->pinged = false;
         [$kind, $payload] = $frame;
         if ($kind === WebSocket::KIND_CLOSE) {
+            // Closed under us (a `close()` of ours ends before the read)
+            // before the session said how it ended: not a quiet end of the
+            // transcript, the engine was lost.
             $this->closed = true;
-            return self::END;
+            $this->error = self::engineLost();
+            throw $this->error;
         }
         if ($kind !== WebSocket::KIND_TEXT) {
             return self::SKIP;
@@ -409,6 +416,22 @@ final class RealtimeSession implements \IteratorAggregate
             return $parsed;
         }
         return self::SKIP;
+    }
+
+    /**
+     * A ready socket that closed with neither `session.done` nor an `error`
+     * frame, and not by `close()`: the engine went away mid-stream (its
+     * machine stopped or crashed) or the connection to it dropped. What was
+     * committed before stays; nothing after it was transcribed. Retryable:
+     * open a new realtime session to go on (there is no resume).
+     */
+    private static function engineLost(): VocalStackException
+    {
+        return new VocalStackException(
+            'engine_lost',
+            'The connection to the transcription engine closed before the realtime session finished; open a new realtime session to continue.',
+            retryable: true,
+        );
     }
 
     /** Hands a frame to onFrame; a throwing callback never breaks the socket. */
