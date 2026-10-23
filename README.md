@@ -6,6 +6,8 @@ pluggable HTTP client (cURL by default); answers are associative arrays
 decoded from the API's JSON, with the wire's camelCase keys, as the API's one
 OpenAPI document (`/v1/openapi.json`) describes them.
 
+Read more about the [VocalStack PHP SDK](https://vocalstack.com/#developers) and our other SDKs on the [VocalStack website](https://vocalstack.com/).
+
 ```php
 <?php
 require 'vendor/autoload.php';
