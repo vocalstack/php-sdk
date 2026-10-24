@@ -86,7 +86,9 @@ final class CurlHttpClient implements HttpClient
         if ($content === false) {
             $error = curl_error($ch);
             $errno = curl_errno($ch);
-            throw new ConnectionException("{$method} {$url}: {$error}", $errno);
+            // The address without its query: it may carry a token.
+            $bare = strtok($url, '?#');
+            throw new ConnectionException("{$method} {$bare}: {$error}", $errno);
         }
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         return new HttpResponse($status, $responseHeaders, is_string($content) ? $content : '');
