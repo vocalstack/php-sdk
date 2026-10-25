@@ -46,15 +46,35 @@ final class RealtimeSession implements \IteratorAggregate
     /** `session.done`'s stats (`audioS`, `processingS`, `realtimeFactor`). */
     public ?array $stats = null;
 
+    /**
+     * The relay's restart close (a draining relay, a blip of the proxy in
+     * front of it): the client reconnects with the same stream URL and the
+     * session goes on. The only close the SDK reconnects on.
+     */
+    public const RESTART_CLOSE = 1012;
+    /** Reconnects after a restart close, 1, 2, 4 s apart. */
+    private const RESTART_TRIES = 3;
+    /** What failed to send while the socket was down is kept, up to this much, for the next one. */
+    private const MAX_PENDING_BYTES = 4 * 1024 * 1024;
+
     private ?VocalStackException $error = null;
     private bool $closed = false;
     private bool $pinged = false;
+    private int $reconnects = 0;
+    /** @var list<array{0: bool, 1: string}> (binary?, data) sends the closed socket refused */
+    private array $pending = [];
+    private int $pendingBytes = 0;
 
     /** @var \Closure|null */
     private ?\Closure $onFrame;
 
-    private function __construct(public readonly string $sessionId, private readonly WebSocket $ws, ?callable $onFrame = null)
-    {
+    private function __construct(
+        public readonly string $sessionId,
+        private WebSocket $ws,
+        ?callable $onFrame = null,
+        private readonly ?string $streamUrl = null,
+        private readonly float $readyDeadline = self::DEFAULT_READY_DEADLINE_S,
+    ) {
         $this->onFrame = $onFrame === null ? null : \Closure::fromCallable($onFrame);
     }
 
@@ -78,6 +98,21 @@ final class RealtimeSession implements \IteratorAggregate
         float $readyDeadline = self::DEFAULT_READY_DEADLINE_S,
         ?callable $onFrame = null,
     ): self {
+        $hand = $onFrame === null ? null : \Closure::fromCallable($onFrame);
+        $ws = self::openReady($streamUrl, $readyDeadline, function (array $f) use ($hand): void {
+            if ($hand !== null) {
+                try {
+                    $hand($f);
+                } catch (\Throwable) {
+                }
+            }
+        });
+        return new self($sessionId, $ws, $onFrame, $streamUrl, $readyDeadline);
+    }
+
+    /** Open `$streamUrl` and wait for `session.ready`: the socket, or the error the connect is refused with. */
+    private static function openReady(string $streamUrl, float $readyDeadline, \Closure $hand): WebSocket
+    {
         try {
             // The upgrade waits in the proxy's queue while every engine is
             // busy: the ready deadline covers it.
@@ -95,7 +130,6 @@ final class RealtimeSession implements \IteratorAggregate
             throw new VocalStackException('engine_unavailable', 'connect failed: ' . $e->getMessage(), retryable: true, previous: $e);
         }
 
-        $session = new self($sessionId, $ws, $onFrame);
         $sawFrame = false;
         $deadline = microtime(true) + $readyDeadline;
         while (true) {
@@ -130,9 +164,9 @@ final class RealtimeSession implements \IteratorAggregate
             if ($parsed === null) {
                 continue;
             }
-            $session->hand($parsed);
+            $hand($parsed);
             if ($parsed['type'] === 'session.ready') {
-                return $session;
+                return $ws;
             }
             if ($parsed['type'] === 'error') {
                 $ws->close();
@@ -203,7 +237,50 @@ final class RealtimeSession implements \IteratorAggregate
      */
     public function sendAudio(string $pcm): void
     {
-        $this->ws->sendBinary($pcm);
+        $this->send(true, $pcm);
+    }
+
+    /** Send, or keep it (bounded) when the socket is down: a restart close reconnects and sends it. */
+    private function send(bool $binary, string $data): void
+    {
+        $ok = $binary ? $this->ws->sendBinary($data) : $this->ws->sendText($data);
+        if ($ok || $this->closed || $this->streamUrl === null) {
+            return;
+        }
+        if ($this->pendingBytes + strlen($data) <= self::MAX_PENDING_BYTES) {
+            $this->pending[] = [$binary, $data];
+            $this->pendingBytes += strlen($data);
+        }
+    }
+
+    /**
+     * The relay restarting: open the same stream URL again (1, 2, 4 s
+     * apart), send what waited, and go on as the same session. False when
+     * out of tries.
+     */
+    private function reconnect(): bool
+    {
+        while ($this->reconnects < self::RESTART_TRIES && !$this->closed && $this->streamUrl !== null) {
+            usleep((int) (1_000_000 * (2 ** $this->reconnects)));
+            $this->reconnects++;
+            try {
+                $this->ws = self::openReady($this->streamUrl, $this->readyDeadline, fn (array $f) => $this->hand($f));
+            } catch (VocalStackException $e) {
+                // A refusal that will not pass (a bad or used token) ends it now.
+                if (!$e->retryable) {
+                    throw $e;
+                }
+                continue;
+            }
+            $waiting = $this->pending;
+            $this->pending = [];
+            $this->pendingBytes = 0;
+            foreach ($waiting as [$binary, $data]) {
+                $this->send($binary, $data);
+            }
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -228,7 +305,7 @@ final class RealtimeSession implements \IteratorAggregate
      */
     public function eof(): void
     {
-        $this->ws->sendText('{"type":"eof"}');
+        $this->send(false, '{"type":"eof"}');
     }
 
     /**
@@ -264,7 +341,7 @@ final class RealtimeSession implements \IteratorAggregate
         if ($translate !== null) {
             $frame['translate'] = array_values($translate);
         }
-        $this->ws->sendText((string) json_encode($frame, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        $this->send(false, (string) json_encode($frame, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
     }
 
     /**
@@ -277,7 +354,7 @@ final class RealtimeSession implements \IteratorAggregate
      */
     public function cancel(): void
     {
-        $this->ws->sendText('{"type":"cancel"}');
+        $this->send(false, '{"type":"cancel"}');
     }
 
     /** Hard-close (aborts the run server-side; no resume). Prefer `eof()` to get final commits. */
@@ -383,11 +460,27 @@ final class RealtimeSession implements \IteratorAggregate
         $this->pinged = false;
         [$kind, $payload] = $frame;
         if ($kind === WebSocket::KIND_CLOSE) {
+            // The relay restarting: reconnect and go on (`RESTART_CLOSE`).
+            if ($payload === (string) self::RESTART_CLOSE) {
+                try {
+                    if ($this->reconnect()) {
+                        return self::SKIP;
+                    }
+                } catch (VocalStackException $e) {
+                    $this->closed = true;
+                    $this->error = $e;
+                    throw $e;
+                }
+                $this->closed = true;
+                $this->pending = [];
+                $this->error = self::engineLost(self::RESTART_CLOSE);
+                throw $this->error;
+            }
             // Closed under us (a `close()` of ours ends before the read)
             // before the session said how it ended: not a quiet end of the
             // transcript, the engine was lost.
             $this->closed = true;
-            $this->error = self::engineLost();
+            $this->error = self::engineLost($payload === '' ? null : (int) $payload);
             throw $this->error;
         }
         if ($kind !== WebSocket::KIND_TEXT) {
@@ -423,13 +516,15 @@ final class RealtimeSession implements \IteratorAggregate
      * frame, and not by `close()`: the engine went away mid-stream (its
      * machine stopped or crashed) or the connection to it dropped. What was
      * committed before stays; nothing after it was transcribed. Retryable:
-     * open a new realtime session to go on (there is no resume).
+     * open a new realtime session to go on. (The relay's restart close,
+     * 1012, is not this: the session reconnects and goes on, `RESTART_CLOSE`.)
      */
-    private static function engineLost(): VocalStackException
+    private static function engineLost(?int $closeCode = null): VocalStackException
     {
+        $how = $closeCode ? " (close {$closeCode})" : '';
         return new VocalStackException(
             'engine_lost',
-            'The connection to the transcription engine closed before the realtime session finished; open a new realtime session to continue.',
+            "The connection to the transcription engine closed before the realtime session finished{$how}; open a new realtime session to continue.",
             retryable: true,
         );
     }

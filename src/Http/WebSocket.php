@@ -121,7 +121,8 @@ final class WebSocket
     /**
      * The next frame as `[kind, payload]`, or null when none came within
      * `$timeout` seconds (null: wait for ever). A closed socket answers
-     * `['close', '']` from then on.
+     * `['close', '']` from then on; the peer's close frame itself carries its
+     * status code as the payload (`'1012'`), once.
      *
      * @return array{0: string, 1: string}|null
      */
@@ -150,7 +151,7 @@ final class WebSocket
             $message instanceof Binary => [self::KIND_BINARY, $message->getContent()],
             $message instanceof Ping => [self::KIND_PING, $message->getContent()],
             $message instanceof Pong => [self::KIND_PONG, $message->getContent()],
-            $message instanceof Close => $this->closedByPeer(),
+            $message instanceof Close => $this->closedByPeer($message->getCloseStatus()),
             default => [self::KIND_BINARY, ''],
         };
     }
@@ -217,11 +218,11 @@ final class WebSocket
     }
 
     /** @return array{0: string, 1: string} */
-    private function closedByPeer(): array
+    private function closedByPeer(?int $status = null): array
     {
         $this->closed = true;
         self::shut($this->client);
-        return [self::KIND_CLOSE, ''];
+        return [self::KIND_CLOSE, $status === null ? '' : (string) $status];
     }
 
     private function readable(?float $timeout): bool
