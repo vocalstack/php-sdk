@@ -75,6 +75,19 @@ final class Voices extends Group
     }
 
     /**
+     * Record whether the speaker agreed to their clone: 'granted' (with an
+     * optional name, which also names the speaker in its recording) makes it
+     * speak; 'refused' deletes its audio and voice. Automatic clones start
+     * 'pending'.
+     *
+     * @return array<string, mixed>
+     */
+    public function setConsent(string $id, string $consent, ?string $name = null): array
+    {
+        return $this->t->json('POST', '/v1/voices/' . self::p($id) . '/consent', json: self::body(['consent' => $consent, 'name' => $name]));
+    }
+
+    /**
      * @param array<string, mixed> $fields PatchVoice
      * @return array<string, mixed>
      */
