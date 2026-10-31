@@ -100,7 +100,7 @@ use VocalStack\VocalStack;
 $path = $argv[1];  // mp3, wav, flac, ogg, m4a, mp4 ...
 $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
 $tx = $vs->transcriptions->create(
-    ['settings' => ['spokenLanguage' => 'en', 'speakerLabels' => 'on']],  // both optional; "off" (default) | "auto" | "on"
+    ['settings' => ['spokenLanguage' => 'en', 'speakerLabels' => 'on']],  // both optional; "auto" (default) | "on" | "off"
     // Off unless asked for: settings summary, title, summaryTranslations,
     // voice (spoken translations), and 'shareLink' => true (a public share link).
     file: $path,  // a path, a stream resource, or VocalStack\Upload::bytes($data, 'name.mp3'); streamed, not read whole

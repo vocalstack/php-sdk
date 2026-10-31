@@ -209,7 +209,12 @@ final class Recordings extends Group
         return array_values($data ?? []);
     }
 
-    /** One sentence spoken in `lang`; the clip's bytes. */
+    /**
+     * One sentence spoken in `lang`; the clip's bytes. `$sentence` is a
+     * transcript sentence's `id`, not a segment's position. In the
+     * recording's default reading: each speaker in their granted clone,
+     * else a stock voice of their gender.
+     */
     public function voiceClip(string $id, int $sentence, string $lang, ?string $format = null): string
     {
         $query = ['lang' => $lang, 'format' => $format];
