@@ -7,22 +7,16 @@ namespace VocalStack\Http;
 use VocalStack\VocalStack;
 use VocalStack\VocalStackException;
 
-/** The one HTTP path every resource method goes through. */
 final class Transport
 {
     public const DEFAULT_BASE_URL = 'https://api.vocalstack.com';
 
-    /** The wait before retrying `503 unavailable` when it names none. */
     public const UNAVAILABLE_WAIT_S = 2.0;
 
     public readonly string $baseUrl;
 
-    /** @var string|\Closure|null */
     private mixed $token;
 
-    /**
-     * @param string|callable|null $token a token, or a callable returning one (read per request)
-     */
     public function __construct(
         ?string $baseUrl,
         private readonly ?string $apiKey,
@@ -45,7 +39,6 @@ final class Transport
         $this->token = $token;
     }
 
-    /** What goes in `Authorization: Bearer`: the API key, else the token. */
     public function bearer(): ?string
     {
         if ($this->apiKey) {
@@ -55,11 +48,6 @@ final class Transport
         return $t instanceof \Closure ? $t() : $t;
     }
 
-    /**
-     * The credential as a header (sockets too: a key is refused in a URL).
-     *
-     * @return array<string, string>
-     */
     public function authHeaders(): array
     {
         $key = $this->bearer();
@@ -71,7 +59,6 @@ final class Transport
         return $this->baseUrl . $path;
     }
 
-    /** @param array<string, mixed>|null $query */
     public function wsUrl(string $path, ?array $query = null): string
     {
         $base = str_starts_with($this->baseUrl, 'http') ? 'ws' . substr($this->baseUrl, 4) : $this->baseUrl;
@@ -79,12 +66,6 @@ final class Transport
         return $base . $path . ($q ? '?' . self::encodeQuery($q) : '');
     }
 
-    /**
-     * Drops null and empty values; booleans go out as `true`/`false`.
-     *
-     * @param array<string, mixed>|null $q
-     * @return array<string, string>
-     */
     public static function clean(?array $q): array
     {
         $out = [];
@@ -97,7 +78,6 @@ final class Transport
         return $out;
     }
 
-    /** A query value as Python's `str()` writes it (`1.0`, not `1`). */
     public static function scalar(mixed $v): string
     {
         if (is_bool($v)) {
@@ -109,30 +89,16 @@ final class Transport
         return (string) $v;
     }
 
-    /** @param array<string, string> $q */
     public static function encodeQuery(array $q): string
     {
         return http_build_query($q, '', '&', PHP_QUERY_RFC1738);
     }
 
-    /**
-     * The query of a listener-side read (a private broadcast's listener
-     * token, or a share link's code), named as on the wire.
-     *
-     * @return array<string, ?string>
-     */
     public static function listenerQuery(?string $listenerToken, ?string $shareCode): array
     {
         return ['listenerToken' => $listenerToken, 'shareCode' => $shareCode];
     }
 
-    /**
-     * Whether a failed call is retried after its `Retry-After` (up to
-     * `maxRetries` times): `429 rate_limited` always (nothing ran), and
-     * `503 unavailable` (the database is waking) only when repeating the
-     * call cannot do the work twice: GET, HEAD and DELETE, or a call
-     * carrying an `Idempotency-Key`.
-     */
     public static function retries(int $status, string $code, string $method, ?string $idempotencyKey = null): bool
     {
         if ($status === 429) {
@@ -144,14 +110,6 @@ final class Transport
         return in_array(strtoupper($method), ['GET', 'HEAD', 'DELETE'], true) || (bool) $idempotencyKey;
     }
 
-    /**
-     * One call; an error answer raises VocalStackException (after the retries).
-     *
-     * @param array<string, mixed>|null $query
-     * @param array<mixed>|null $json the JSON body (an empty array is `{}`)
-     * @param array<string, string>|null $form a form-encoded body
-     * @param array<string, string> $headers
-     */
     public function raw(
         string $method,
         string $path,
@@ -229,15 +187,6 @@ final class Transport
         }
     }
 
-    /**
-     * A call answered with JSON (decoded to arrays); a 3xx answers
-     * `['location' => ...]`, an empty body null.
-     *
-     * @param array<string, mixed>|null $query
-     * @param array<mixed>|null $json
-     * @param array<string, string>|null $form
-     * @param array<string, string> $headers
-     */
     public function json(
         string $method,
         string $path,
@@ -258,7 +207,6 @@ final class Transport
         return $resp->body === '' ? null : json_decode($resp->body, true, 512, JSON_THROW_ON_ERROR);
     }
 
-    /** JSON as the wire wants it: an empty top-level array is `{}`. */
     public static function encodeJson(mixed $value): string
     {
         if ($value === []) {

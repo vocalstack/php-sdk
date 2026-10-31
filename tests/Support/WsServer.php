@@ -4,15 +4,12 @@ declare(strict_types=1);
 
 namespace VocalStack\Tests\Support;
 
-/** Runs ws_fixture_server.php on a free port for one connection. */
 final class WsServer
 {
-    /** @var resource */
     private $proc;
     private string $file;
     public readonly int $port;
 
-    /** @param array<string, mixed> $scenario */
     public function __construct(array $scenario)
     {
         $this->file = tempnam(sys_get_temp_dir(), 'vsws');
@@ -34,14 +31,12 @@ final class WsServer
         return "ws://127.0.0.1:{$this->port}{$path}";
     }
 
-    /** What the server saw: the upgrade request's headers. */
     public function request(): array
     {
         $this->wait();
         return json_decode((string) @file_get_contents($this->file . '.request'), true) ?? [];
     }
 
-    /** The frames the client sent (`op`, text payload or binary length). */
     public function received(): array
     {
         $this->wait();

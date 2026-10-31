@@ -11,32 +11,17 @@ use VocalStack\Http\WebSocketRefused;
 use VocalStack\Http\WebSocketTimeout;
 use VocalStack\VocalStackException;
 
-/** What every resource group shares: the transport and a few helpers. */
 abstract class Group
 {
     public function __construct(protected readonly Transport $t)
     {
     }
 
-    /**
-     * A request body from wire-named (camelCase) fields: top-level nulls
-     * are left out, as the Python SDK's models drop unset fields.
-     *
-     * @param array<string, mixed> $fields
-     * @return array<string, mixed>
-     */
     protected static function body(array $fields): array
     {
         return array_filter($fields, static fn ($v) => $v !== null);
     }
 
-    /**
-     * Every item of a paged list: each page asked for with the previous
-     * page's `nextCursor` until one comes back without it.
-     *
-     * @param callable(?string): mixed $page
-     * @return list<mixed>
-     */
     protected static function allPages(callable $page, string $key): array
     {
         $out = [];
@@ -53,28 +38,16 @@ abstract class Group
         }
     }
 
-    /**
-     * A list held under `$key` in the answer.
-     *
-     * @return list<mixed>
-     */
     protected static function many(mixed $data, string $key): array
     {
         return array_values(is_array($data) ? ($data[$key] ?? []) : []);
     }
 
-    /** A path segment, percent-encoded. */
     protected static function p(string|int $segment): string
     {
         return rawurlencode((string) $segment);
     }
 
-    /**
-     * Open an API socket (10 s for the upgrade, as Python's websockets
-     * waits): a refused upgrade raises its envelope as VocalStackException.
-     *
-     * @param array<string, string> $headers
-     */
     protected static function socket(string $url, array $headers): WebSocket
     {
         try {

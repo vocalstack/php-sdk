@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace VocalStack;
 
-/** Result of `$vs->realtime->transcribeFile()` / `->transcribeUrl()`. */
 final class RealtimeTranscript
 {
-    /**
-     * @param list<array<string, mixed>> $segments the committed segments, in order
-     * @param array<string, mixed>|null $stats `session.done`'s stats
-     */
     public function __construct(
         public readonly array $segments,
         public readonly ?string $doneReason,
@@ -18,7 +13,6 @@ final class RealtimeTranscript
     ) {
     }
 
-    /** All committed text, space-joined. */
     public function text(): string
     {
         return implode(' ', array_map(static fn (array $s): string => (string) ($s['text'] ?? ''), $this->segments));

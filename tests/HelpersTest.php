@@ -10,11 +10,6 @@ use VocalStack\Tests\Support\FakeHttpClient;
 use VocalStack\Tests\Support\WsServer;
 use VocalStack\VocalStack;
 
-/**
- * The helpers the reference's guides lean on: `$vs->jobs->wait()`'s
- * `onProgress` (against FakeHttpClient) and a realtime socket's
- * `onFrame` (against a local WebSocket server). No network.
- */
 final class HelpersTest extends TestCase
 {
     public function testEveryJobReadReachesOnProgressTheLastOneIncluded(): void

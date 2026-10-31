@@ -25,21 +25,6 @@ use VocalStack\Resources\Tags;
 use VocalStack\Resources\Transcriptions;
 use VocalStack\Resources\Voices;
 
-/**
- * The VocalStack client: one class, grouped by resource.
- *
- *     $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'));
- *     $tx = $vs->transcriptions->create(['url' => 'https://example.com/talk.mp3']);
- *     $job = $vs->jobs->wait($tx['job']['recordingId']);
- *     $snap = $vs->recordings->transcript($job['recordingId']);
- *     echo implode(' ', array_column($snap['sentences'], 'text'));
- *
- * What is what: a realtime session is a signed token plus one socket,
- * nothing stored (`$vs->realtime`); a broadcast is the link listeners
- * open; a transcription is a file, link, microphone or stream transcribed
- * and stored; a recording is one take inside either; a job is a file or
- * link recording's transcription work.
- */
 final class VocalStack
 {
     public const VERSION = '1.0.0';
@@ -66,17 +51,6 @@ final class VocalStack
     public readonly Events $events;
     public readonly Meta $meta;
 
-    /**
-     * `apiKey`: an API key (`vs_key_`), for a server. `token` instead: a
-     * signed-in person's access token or a browser token, or a callable
-     * returning one (read per request); not with `apiKey`. `baseUrl`
-     * defaults to `https://api.vocalstack.com`. A `429` is retried after
-     * its `Retry-After` (at most 60 s) up to `maxRetries` times, and so is
-     * a `503 unavailable` on a call that is safe to repeat. `httpClient`
-     * replaces the default cURL one (it then owns `timeout`).
-     *
-     * @param string|callable|null $token
-     */
     public function __construct(
         ?string $apiKey = null,
         ?string $baseUrl = null,

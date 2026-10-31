@@ -15,15 +15,6 @@ use WebSocket\Message\Text;
 use WebSocket\Middleware\CloseHandler;
 use WebSocket\Middleware\PingResponder;
 
-/**
- * One WebSocket, over phrity/websocket (loaded only when a socket is
- * opened). What `$vs->recordings->subscribe()`, `->events()` and
- * `$vs->events->account()` return, and what a RealtimeSession reads.
- *
- * `receive()` reads the next frame with a timeout that never splits a
- * frame: it waits until the socket is readable, then reads one whole
- * frame. Pings are answered and close handshakes completed for you.
- */
 final class WebSocket
 {
     public const KIND_TEXT = 'text';
@@ -38,7 +29,6 @@ final class WebSocket
     {
     }
 
-    /** Fails clearly when phrity/websocket is not installed. */
     public static function requireLibrary(): void
     {
         if (!class_exists(Client::class)) {
@@ -48,14 +38,6 @@ final class WebSocket
         }
     }
 
-    /**
-     * Open the socket. `$timeout` covers the TCP connect and the upgrade.
-     *
-     * @param array<string, string> $headers
-     * @throws WebSocketRefused the server answered the upgrade with another status
-     * @throws ConnectionException no socket (refused, DNS, closed before an answer)
-     * @throws WebSocketTimeout the upgrade was not answered in time
-     */
     public static function connect(string $url, array $headers = [], float $timeout = 30.0): self
     {
         self::requireLibrary();
@@ -89,7 +71,6 @@ final class WebSocket
         return new self($client, $tap);
     }
 
-    /** The phrity client underneath, for anything this wrapper does not cover. */
     public function client(): Client
     {
         return $this->client;
@@ -100,32 +81,21 @@ final class WebSocket
         return !$this->closed && $this->client->isConnected();
     }
 
-    /** Send a text frame (false: the socket is closed). */
     public function sendText(string $text): bool
     {
         return $this->push(fn () => $this->client->text($text));
     }
 
-    /** Send a binary frame (false: the socket is closed). */
     public function sendBinary(string $data): bool
     {
         return $this->push(fn () => $this->client->binary($data));
     }
 
-    /** Send a ping (false: the socket is closed). */
     public function ping(): bool
     {
         return $this->push(fn () => $this->client->ping());
     }
 
-    /**
-     * The next frame as `[kind, payload]`, or null when none came within
-     * `$timeout` seconds (null: wait for ever). A closed socket answers
-     * `['close', '']` from then on; the peer's close frame itself carries its
-     * status code as the payload (`'1012'`), once.
-     *
-     * @return array{0: string, 1: string}|null
-     */
     public function receive(?float $timeout = null): ?array
     {
         if (!$this->isOpen()) {
@@ -136,7 +106,6 @@ final class WebSocket
             return null;
         }
         try {
-            // A frame has begun: give the rest of it time to arrive.
             $this->client->setTimeout(max(60.0, (float) $timeout));
             $message = $this->client->receive();
         } catch (ConnectionTimeoutException) {
@@ -156,12 +125,6 @@ final class WebSocket
         };
     }
 
-    /**
-     * Text frames until the socket closes (binary and control frames are
-     * skipped), each JSON frame decoded to an array.
-     *
-     * @return \Generator<int, mixed>
-     */
     public function messages(): \Generator
     {
         while (true) {
@@ -184,7 +147,6 @@ final class WebSocket
         }
     }
 
-    /** Close (1000), waiting briefly for the peer's acknowledgement. */
     public function close(int $code = 1000, string $reason = ''): void
     {
         if ($this->closed) {
@@ -217,7 +179,6 @@ final class WebSocket
         }
     }
 
-    /** @return array{0: string, 1: string} */
     private function closedByPeer(?int $status = null): array
     {
         $this->closed = true;

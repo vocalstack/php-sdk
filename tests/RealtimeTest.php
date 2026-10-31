@@ -15,7 +15,6 @@ use VocalStack\VocalStackException;
 
 use function VocalStack\paceRealtime;
 
-/** The realtime socket against a local WebSocket server: refusals, deadlines, frames sent, helpers. */
 final class RealtimeTest extends TestCase
 {
     private static function committed(int $seq, string $text): array
@@ -110,8 +109,6 @@ final class RealtimeTest extends TestCase
 
     public function testASocketThatClosesWithNoSessionDoneIsEngineLost(): void
     {
-        // The engine's machine is gone: the socket closes with no
-        // `session.done` and no `error` frame.
         $server = new WsServer(['frames' => [['type' => 'session.ready'], self::committed(0, 'before the loss'), ['$close' => true]]]);
         $session = RealtimeSession::connect('s1', $server->url());
         $seen = [];
@@ -148,7 +145,7 @@ final class RealtimeTest extends TestCase
         foreach ($session as $ev) {
         }
         $session->close();
-        $session->sendAudio('late'); // racing the end: dropped, no exception
+        $session->sendAudio('late');
         $got = array_map(
             static fn (array $f) => $f['op'] === 1 ? $f['payload'] : "binary:{$f['payload']}",
             array_values(array_filter($server->received(), static fn ($f) => $f['op'] === 1 || $f['op'] === 2)),
@@ -198,7 +195,7 @@ final class RealtimeTest extends TestCase
         $server = new WsServer(['frames' => [['type' => 'session.ready'], ['$delayMs' => 100], self::committed(0, 'early'),
             ['$waitEof' => true], self::committed(1, 'late'), self::done()]]);
         $session = RealtimeSession::connect('s1', $server->url());
-        $pcm = str_repeat("\0", 64000 / 2); // half a second
+        $pcm = str_repeat("\0", 64000 / 2);
         $start = microtime(true);
         $texts = [];
         foreach (paceRealtime($session, $pcm, chunkSeconds: 0.1, speed: 2.0) as $ev) {

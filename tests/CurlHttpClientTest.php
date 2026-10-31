@@ -11,10 +11,8 @@ use VocalStack\Upload;
 use VocalStack\VocalStack;
 use VocalStack\VocalStackException;
 
-/** The default client against `php -S` on loopback: JSON, forms, streamed multipart, redirects, errors. */
 final class CurlHttpClientTest extends TestCase
 {
-    /** @var resource|null */
     private static $server = null;
     private static int $port = 0;
 

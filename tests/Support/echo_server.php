@@ -1,6 +1,5 @@
 <?php
 
-// The router for `php -S`: answers what it received, for CurlHttpClientTest.
 declare(strict_types=1);
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);

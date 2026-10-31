@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace VocalStack\Http;
 
-/**
- * The default HttpClient, over ext-curl. Multipart bodies are streamed
- * through CURLOPT_READFUNCTION: a file is never read whole into memory.
- */
 final class CurlHttpClient implements HttpClient
 {
-    /** @param float $timeout seconds for the whole request (0: none) */
     public function __construct(private readonly float $timeout = 300.0)
     {
         if (!extension_loaded('curl')) {
@@ -35,7 +30,7 @@ final class CurlHttpClient implements HttpClient
             CURLOPT_HEADERFUNCTION => static function ($ch, string $line) use (&$responseHeaders): int {
                 $len = strlen($line);
                 if (preg_match('#^HTTP/\S+\s+\d+#', $line)) {
-                    $responseHeaders = []; // a new response (after a 100 Continue)
+                    $responseHeaders = [];
                 } elseif (str_contains($line, ':')) {
                     [$name, $value] = explode(':', $line, 2);
                     $responseHeaders[strtolower(trim($name))][] = trim($value);
@@ -86,7 +81,6 @@ final class CurlHttpClient implements HttpClient
         if ($content === false) {
             $error = curl_error($ch);
             $errno = curl_errno($ch);
-            // The address without its query: it may carry a token.
             $bare = strtok($url, '?#');
             throw new ConnectionException("{$method} {$bare}: {$error}", $errno);
         }

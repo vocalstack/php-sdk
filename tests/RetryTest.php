@@ -11,7 +11,6 @@ use VocalStack\Tests\Support\FakeHttpClient;
 use VocalStack\VocalStack;
 use VocalStack\VocalStackException;
 
-/** The transport's retries and the socket upgrade's refusals, against FakeHttpClient (no network). */
 final class RetryTest extends TestCase
 {
     private static function envelope(string $code, int $status, bool $retryable): array

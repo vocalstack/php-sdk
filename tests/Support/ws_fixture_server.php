@@ -1,14 +1,5 @@
 <?php
 
-// A WebSocket server for the tests: it plays a scenario's frames
-// ({"$waitEof": true} waits for the client's eof, {"$close": true} closes,
-// {"$close": 1012} closes with that status, {"$delayMs": n} sleeps), or
-// refuses the upgrade (rejectUpgrade).  "connections": [scenario, ...]
-// plays one scenario per connection, in turn (a client that reconnects);
-// the frames received are kept per connection ("conn").
-//
-// Usage: php ws_fixture_server.php <scenario.json>; prints "LISTENING <port>".
-
 declare(strict_types=1);
 
 $scenario = json_decode((string) file_get_contents($argv[1]), true);

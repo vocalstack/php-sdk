@@ -9,7 +9,6 @@ use VocalStack\RealtimeSession;
 use VocalStack\Tests\Support\WsServer;
 use VocalStack\VocalStackException;
 
-/** A realtime session through the relay's restart close (1012), against a local WebSocket server. */
 final class ReconnectTest extends TestCase
 {
     private const READY = ['type' => 'session.ready'];
@@ -32,7 +31,6 @@ final class ReconnectTest extends TestCase
         ]]);
         $session = RealtimeSession::connect('s', $server->url());
         $session->sendAudio(str_repeat("\0", 3200));
-        // Reading through the close: the session reconnects (1 s) and goes on.
         $this->assertSame([], $session->poll(2.5));
         $this->assertFalse($session->ended());
         $session->sendAudio(str_repeat("\0", 1600));

@@ -9,7 +9,6 @@ use VocalStack\Tests\Support\FakeHttpClient;
 use VocalStack\VocalStack;
 use VocalStack\VocalStackException;
 
-/** `$vs->connect->token()` against FakeHttpClient (no network). */
 final class ConnectTest extends TestCase
 {
     private const ISSUED = [

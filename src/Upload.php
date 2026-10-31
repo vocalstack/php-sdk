@@ -4,17 +4,8 @@ declare(strict_types=1);
 
 namespace VocalStack;
 
-/**
- * A file to upload: a path, bytes, or an open stream. A path or a stream
- * is streamed, never read whole (uploads run to hundreds of megabytes).
- *
- * Wherever the SDK takes a file, a plain string is a path, a stream
- * resource is read from its current position, and raw bytes are
- * `Upload::bytes($data, 'name.mp3')`.
- */
 final class Upload
 {
-    /** @param resource|null $stream */
     private function __construct(
         public readonly ?string $path,
         public readonly ?string $data,
@@ -23,24 +14,16 @@ final class Upload
     ) {
     }
 
-    /** A file on disk. */
     public static function path(string $path, ?string $name = null): self
     {
         return new self($path, null, null, $name);
     }
 
-    /** Bytes already in memory. */
     public static function bytes(string $data, ?string $name = null): self
     {
         return new self(null, $data, null, $name);
     }
 
-    /**
-     * An open stream, read from where it stands (rewound to that point
-     * when a retried request sends it again, if it can seek).
-     *
-     * @param resource $stream
-     */
     public static function stream(mixed $stream, ?string $name = null): self
     {
         if (!is_resource($stream)) {
@@ -49,12 +32,6 @@ final class Upload
         return new self(null, null, $stream, $name);
     }
 
-    /**
-     * What the SDK's methods accept, as an Upload: a path string, an
-     * Upload, or a stream resource.
-     *
-     * @param string|Upload|resource $file
-     */
     public static function from(mixed $file): self
     {
         if ($file instanceof self) {
@@ -69,7 +46,6 @@ final class Upload
         throw new \InvalidArgumentException('a file is a path, an Upload, or a stream resource');
     }
 
-    /** The file name sent: the explicit one, else the path's or stream's base name, else `$default`. */
     public function fileName(?string $override = null, string $default = 'upload'): string
     {
         if ($override !== null && $override !== '') {
@@ -91,7 +67,6 @@ final class Upload
         return $default;
     }
 
-    /** The size in bytes, when it is known without reading. */
     public function size(): ?int
     {
         if ($this->data !== null) {
@@ -114,12 +89,6 @@ final class Upload
         return max(0, (int) $stat['size'] - $start);
     }
 
-    /**
-     * The bytes, `$chunkBytes` at a time. Each call starts over: a path is
-     * opened again, a seekable stream is rewound to where it first stood.
-     *
-     * @return \Generator<int, string>
-     */
     public function chunks(int $chunkBytes = 262144): \Generator
     {
         if ($this->data !== null) {
@@ -164,7 +133,6 @@ final class Upload
         }
     }
 
-    /** Every byte, in memory (for small uploads and tests; the SDK itself streams). */
     public function contents(): string
     {
         $out = '';

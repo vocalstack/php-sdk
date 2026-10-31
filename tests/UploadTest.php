@@ -11,7 +11,6 @@ use VocalStack\Tests\Support\FakeHttpClient;
 use VocalStack\Upload;
 use VocalStack\VocalStack;
 
-/** Uploads, idempotency keys and request bodies, against FakeHttpClient (no network). */
 final class UploadTest extends TestCase
 {
     private static function client(array $answers = [[200, ['id' => 't1']]], array $opts = []): array

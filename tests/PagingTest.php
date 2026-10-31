@@ -8,10 +8,6 @@ use PHPUnit\Framework\TestCase;
 use VocalStack\Tests\Support\FakeHttpClient;
 use VocalStack\VocalStack;
 
-/**
- * The paged lists against FakeHttpClient: the plain methods read every
- * page through `nextCursor`, the `*Page` methods ask for one.
- */
 final class PagingTest extends TestCase
 {
     private static function client(array $pages): array

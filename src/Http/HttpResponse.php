@@ -4,15 +4,10 @@ declare(strict_types=1);
 
 namespace VocalStack\Http;
 
-/** One HTTP answer: its status, its headers (names lowercased) and its body. */
 final class HttpResponse
 {
-    /** @var array<string, string> */
     public readonly array $headers;
 
-    /**
-     * @param array<string, string|list<string>> $headers any case; repeated headers joined with ", "
-     */
     public function __construct(
         public readonly int $status,
         array $headers = [],

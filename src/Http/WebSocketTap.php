@@ -10,11 +10,6 @@ use WebSocket\Connection;
 use WebSocket\Middleware\ProcessHttpIncomingInterface;
 use WebSocket\Middleware\ProcessHttpStack;
 
-/**
- * @internal A phrity middleware that keeps the socket's stream (to wait
- * on it without splitting a frame) and, on a refused upgrade, reads the
- * answer's body (phrity reads only its head): the API's error envelope.
- */
 final class WebSocketTap implements ProcessHttpIncomingInterface
 {
     public string $body = '';
@@ -36,7 +31,6 @@ final class WebSocketTap implements ProcessHttpIncomingInterface
         return $message;
     }
 
-    /** @return resource|null */
     public function resource(): mixed
     {
         try {
