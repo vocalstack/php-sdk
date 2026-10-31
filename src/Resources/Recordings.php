@@ -211,7 +211,7 @@ final class Recordings extends Group
 
     /**
      * One sentence spoken in `lang`; the clip's bytes. `$sentence` is a
-     * transcript sentence's `id`, not a segment's position. In the
+     * transcript sentence's `sentenceId`, not a segment's position. In the
      * recording's default reading: each speaker in their granted clone,
      * else a stock voice of their gender.
      */
