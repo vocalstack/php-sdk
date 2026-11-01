@@ -11,14 +11,39 @@ use VocalStack\Upload;
 
 final class Voices extends Group
 {
-    public function list(): array
+    public function list(?string $lifecycle = null): array
     {
-        return self::many($this->t->json('GET', '/v1/voices'), 'voices');
+        return self::many($this->t->json('GET', '/v1/voices', query: ['lifecycle' => $lifecycle]), 'voices');
     }
 
     public function get(string $id): array
     {
         return $this->t->json('GET', '/v1/voices/' . self::p($id));
+    }
+
+    public function archive(string $id): array
+    {
+        return $this->t->json('POST', '/v1/voices/' . self::p($id) . '/archive');
+    }
+
+    public function restore(string $id): array
+    {
+        return $this->t->json('POST', '/v1/voices/' . self::p($id) . '/restore');
+    }
+
+    public function archiveMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/voices' . '/archive', json: ['ids' => array_values($ids)]);
+    }
+
+    public function restoreMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/voices' . '/restore', json: ['ids' => array_values($ids)]);
+    }
+
+    public function deleteMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/voices' . '/delete', json: ['ids' => array_values($ids)]);
     }
 
     public function create(

@@ -80,6 +80,21 @@ final class Recordings extends Group
         $this->t->json('POST', self::path($id, '/purge'));
     }
 
+    public function archiveMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/recordings' . '/archive', json: ['ids' => array_values($ids)]);
+    }
+
+    public function restoreMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/recordings' . '/restore', json: ['ids' => array_values($ids)]);
+    }
+
+    public function purgeMany(array $ids): array
+    {
+        return $this->t->json('POST', '/v1/recordings' . '/purge', json: ['ids' => array_values($ids)]);
+    }
+
     public function transcript(
         string $id,
         ?int $after = null,

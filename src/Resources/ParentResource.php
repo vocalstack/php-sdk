@@ -51,6 +51,21 @@ abstract class ParentResource extends Group
         $this->t->json('POST', $this->path($id, '/purge'));
     }
 
+    public function archiveMany(array $ids): array
+    {
+        return $this->t->json('POST', static::BASE . '/archive', json: ['ids' => array_values($ids)]);
+    }
+
+    public function restoreMany(array $ids): array
+    {
+        return $this->t->json('POST', static::BASE . '/restore', json: ['ids' => array_values($ids)]);
+    }
+
+    public function purgeMany(array $ids): array
+    {
+        return $this->t->json('POST', static::BASE . '/purge', json: ['ids' => array_values($ids)]);
+    }
+
     public function listRecordings(string $id, string $lifecycle = 'active'): array
     {
         return self::allPages(
