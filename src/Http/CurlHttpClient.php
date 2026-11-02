@@ -44,15 +44,13 @@ final class CurlHttpClient implements HttpClient
         $headers['expect'] = '';
         if ($body instanceof MultipartBody) {
             $length = $body->length();
-            if ($length === null) {
-                $headers['transfer-encoding'] = 'chunked';
-            } else {
-                $headers['content-length'] = (string) $length;
+            if ($length !== null) {
+                $opts[CURLOPT_INFILESIZE] = $length;
             }
             $chunks = $body->chunks();
             $buffer = '';
             $started = false;
-            $opts[CURLOPT_POST] = true;
+            $opts[CURLOPT_UPLOAD] = true;
             $opts[CURLOPT_READFUNCTION] = static function ($ch, $fd, int $want) use ($chunks, &$buffer, &$started): string {
                 while (strlen($buffer) < $want) {
                     if ($started) {

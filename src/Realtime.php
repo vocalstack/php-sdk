@@ -14,9 +14,9 @@ final class Realtime extends Group
         parent::__construct($t);
     }
 
-    public function createSession(array $options = []): array
+    public function createSession(array $options = [], ?string $idempotencyKey = null): array
     {
-        return $this->t->json('POST', '/v1/realtime/sessions', json: self::body($options));
+        return $this->t->json('POST', '/v1/realtime/sessions', json: self::body($options), idempotencyKey: $idempotencyKey);
     }
 
     public function connect(array $options = [], ?float $readyDeadline = null, ?callable $onFrame = null): RealtimeSession
