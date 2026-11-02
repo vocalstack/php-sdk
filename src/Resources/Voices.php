@@ -78,8 +78,9 @@ final class Voices extends Group
         string $name,
         ?string $color = null,
         ?string $idempotencyKey = null,
+        ?bool $library = null,
     ): array {
-        $body = self::body(['recordingId' => $recordingId, 'speaker' => $speaker, 'name' => $name, 'color' => $color, 'consent' => true]);
+        $body = self::body(['recordingId' => $recordingId, 'speaker' => $speaker, 'name' => $name, 'color' => $color, 'library' => $library, 'consent' => true]);
         return $this->t->json('POST', '/v1/voices/from-speaker', json: $body, idempotencyKey: $idempotencyKey);
     }
 
