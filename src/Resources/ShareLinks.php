@@ -6,6 +6,11 @@ namespace VocalStack\Resources;
 
 final class ShareLinks extends Group
 {
+    public function open(string $code): array
+    {
+        return $this->t->json('GET', '/v1/shares/' . self::p($code), anonymous: true);
+    }
+
     public function update(string $id, array $fields = []): array
     {
         return $this->t->json('PATCH', '/v1/share-links/' . self::p($id), json: self::body($fields));

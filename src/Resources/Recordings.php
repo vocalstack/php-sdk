@@ -165,20 +165,48 @@ final class Recordings extends Group
         return $this->t->raw('GET', self::path($id, '/audio/clip'), query: $query, headers: ['accept' => '*/*'])->body;
     }
 
-    public function voice(string $id, ?string $lang = null): array
+    public function voice(string $id, ?string $lang = null, ?string $listenerToken = null, ?string $shareCode = null): array
     {
-        return array_values($this->t->json('GET', self::path($id, '/voice'), query: ['lang' => $lang]) ?? []);
+        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang];
+        return array_values($this->t->json('GET', self::path($id, '/voice'), query: $query) ?? []);
     }
 
-    public function renderVoice(string $id, array $langs, ?string $idempotencyKey = null): array
-    {
-        $data = $this->t->json('POST', self::path($id, '/voice'), json: ['langs' => array_values($langs)], idempotencyKey: $idempotencyKey);
+    public function renderVoice(
+        string $id,
+        array $langs,
+        ?string $idempotencyKey = null,
+        ?string $voice = null,
+        ?array $voiceBySpeaker = null,
+        ?int $near = null,
+        ?string $listenerToken = null,
+        ?string $shareCode = null,
+    ): array {
+        $body = ['langs' => array_values($langs)];
+        if ($voice !== null) {
+            $body['voice'] = $voice;
+        }
+        if ($voiceBySpeaker !== null) {
+            $body['voiceBySpeaker'] = (object) array_combine(array_map('strval', array_keys($voiceBySpeaker)), array_values($voiceBySpeaker));
+        }
+        if ($near !== null) {
+            $body['near'] = $near;
+        }
+        $query = Transport::listenerQuery($listenerToken, $shareCode);
+        $data = $this->t->json('POST', self::path($id, '/voice'), query: $query, json: $body, idempotencyKey: $idempotencyKey);
         return array_values($data ?? []);
     }
 
-    public function voiceClip(string $id, int $sentence, string $lang, ?string $format = null): string
-    {
-        $query = ['lang' => $lang, 'format' => $format];
+    public function voiceClip(
+        string $id,
+        int $sentence,
+        string $lang,
+        ?string $format = null,
+        ?string $voice = null,
+        ?int $part = null,
+        ?string $listenerToken = null,
+        ?string $shareCode = null,
+    ): string {
+        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'voice' => $voice, 'format' => $format, 'part' => $part ?: null];
         return $this->t->raw('GET', self::path($id, "/voice/{$sentence}"), query: $query, headers: ['accept' => '*/*'])->body;
     }
 

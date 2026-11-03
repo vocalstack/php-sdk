@@ -14,9 +14,9 @@ final class Transcriptions extends ParentResource
     protected const BASE = '/v1/transcriptions';
     protected const KEY = 'transcriptions';
 
-    public function listPage(string $lifecycle = 'active', ?string $cursor = null, ?int $limit = null): array
+    public function listPage(string $lifecycle = 'active', ?string $cursor = null, ?int $limit = null, ?string $site = null): array
     {
-        return $this->t->json('GET', self::BASE, query: ['lifecycle' => $lifecycle, 'cursor' => $cursor, 'limit' => $limit]);
+        return $this->t->json('GET', self::BASE, query: ['lifecycle' => $lifecycle, 'cursor' => $cursor, 'limit' => $limit, 'site' => $site]);
     }
 
     public function uploadRecording(string $id, array $fields = [], ?string $idempotencyKey = null): array
@@ -46,6 +46,11 @@ final class Transcriptions extends ParentResource
     public function createLive(array $fields = [], ?string $idempotencyKey = null): array
     {
         return $this->t->json('POST', self::BASE . '/live', json: self::body($fields), idempotencyKey: $idempotencyKey);
+    }
+
+    public function lookup(string $url): ?array
+    {
+        return $this->t->json('GET', self::BASE . '/lookup', query: ['url' => $url])['transcription'] ?? null;
     }
 
     public function probe(string $url): array
