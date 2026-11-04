@@ -32,6 +32,13 @@ final class PlayerTest extends TestCase
         $this->assertSame('{"langs":["es"],"voiceBySpeaker":{"0":"stock-a"},"near":4}', $http->calls[0]['content']);
     }
 
+    public function testRenderVoiceAsksForAClonedVoiceWithConsent(): void
+    {
+        [$vs, $http] = self::client([[200, []]]);
+        $vs->recordings->renderVoice('r1', ['es'], voiceBySpeaker: [0 => 'clone:abc'], consent: true);
+        $this->assertSame('{"langs":["es"],"consent":true,"voiceBySpeaker":{"0":"clone:abc"}}', $http->calls[0]['content']);
+    }
+
     public function testOpenShareSendsNoCredential(): void
     {
         [$vs, $http] = self::client([[200, ['code' => 'abc']]], 'session');

@@ -180,8 +180,12 @@ final class Recordings extends Group
         ?int $near = null,
         ?string $listenerToken = null,
         ?string $shareCode = null,
+        ?bool $consent = null,
     ): array {
         $body = ['langs' => array_values($langs)];
+        if ($consent !== null) {
+            $body['consent'] = $consent;
+        }
         if ($voice !== null) {
             $body['voice'] = $voice;
         }
