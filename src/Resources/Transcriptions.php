@@ -14,9 +14,62 @@ final class Transcriptions extends ParentResource
     protected const BASE = '/v1/transcriptions';
     protected const KEY = 'transcriptions';
 
-    public function listPage(string $lifecycle = 'active', ?string $cursor = null, ?int $limit = null, ?string $site = null): array
-    {
-        return $this->t->json('GET', self::BASE, query: ['lifecycle' => $lifecycle, 'cursor' => $cursor, 'limit' => $limit, 'site' => $site]);
+    public function list(
+        string $lifecycle = 'active',
+        ?string $site = null,
+        ?string $q = null,
+        ?string $language = null,
+        ?string $kind = null,
+        ?string $origin = null,
+        ?string $tag = null,
+        ?string $broadcast = null,
+        string|\DateTimeInterface|null $createdAfter = null,
+        string|\DateTimeInterface|null $createdBefore = null,
+        ?bool $shared = null,
+    ): array {
+        $filters = self::filters($site, $q, $language, $kind, $origin, $tag, $broadcast, $createdAfter, $createdBefore, $shared);
+        return self::allPages(
+            fn (?string $c) => $this->t->json('GET', self::BASE, query: ['lifecycle' => $lifecycle, 'cursor' => $c] + $filters),
+            self::KEY,
+        );
+    }
+
+    public function listPage(
+        string $lifecycle = 'active',
+        ?string $cursor = null,
+        ?int $limit = null,
+        ?string $site = null,
+        ?string $q = null,
+        ?string $language = null,
+        ?string $kind = null,
+        ?string $origin = null,
+        ?string $tag = null,
+        ?string $broadcast = null,
+        string|\DateTimeInterface|null $createdAfter = null,
+        string|\DateTimeInterface|null $createdBefore = null,
+        ?bool $shared = null,
+    ): array {
+        $filters = self::filters($site, $q, $language, $kind, $origin, $tag, $broadcast, $createdAfter, $createdBefore, $shared);
+        return $this->t->json('GET', self::BASE, query: ['lifecycle' => $lifecycle, 'cursor' => $cursor, 'limit' => $limit] + $filters);
+    }
+
+    private static function filters(
+        ?string $site,
+        ?string $q,
+        ?string $language,
+        ?string $kind,
+        ?string $origin,
+        ?string $tag,
+        ?string $broadcast,
+        string|\DateTimeInterface|null $createdAfter,
+        string|\DateTimeInterface|null $createdBefore,
+        ?bool $shared,
+    ): array {
+        $at = static fn (string|\DateTimeInterface|null $d) => $d instanceof \DateTimeInterface ? $d->format(\DateTimeInterface::RFC3339) : $d;
+        return [
+            'site' => $site, 'q' => $q, 'language' => $language, 'kind' => $kind, 'origin' => $origin, 'tag' => $tag,
+            'broadcast' => $broadcast, 'createdAfter' => $at($createdAfter), 'createdBefore' => $at($createdBefore), 'shared' => $shared,
+        ];
     }
 
     public function uploadRecording(string $id, array $fields = [], ?string $idempotencyKey = null): array

@@ -47,6 +47,29 @@ final class PagingTest extends TestCase
         $this->assertSame(['c8', '100'], [$http->query(0)['cursor'], $http->query(0)['limit']]);
     }
 
+    public function testListSendsTheSearchFilters(): void
+    {
+        [$vs, $http] = self::client([
+            ['transcriptions' => [self::tx('t1') + ['shareCode' => 'abc']], 'nextCursor' => 'c1'],
+            ['transcriptions' => [self::tx('t2') + ['shareCode' => 'def']]],
+        ]);
+        $got = $vs->transcriptions->list(
+            shared: true, q: 'team meeting', site: 'youtube', language: 'en', kind: 'link', tag: 'Talks',
+            createdAfter: '2026-01-01', createdBefore: new \DateTimeImmutable('2026-02-01T00:00:00Z'),
+        );
+        $this->assertSame(['abc', 'def'], array_column($got, 'shareCode'));
+        $this->assertSame([null, 'c1'], [$http->query(0)['cursor'] ?? null, $http->query(1)['cursor'] ?? null]);
+        foreach ([0, 1] as $i) {
+            $q = $http->query($i);
+            $this->assertSame(['true', 'team meeting', 'youtube', 'en', 'link', 'Talks'], [$q['shared'], $q['q'], $q['site'], $q['language'], $q['kind'], $q['tag']]);
+            $this->assertSame(['2026-01-01', '2026-02-01T00:00:00+00:00'], [$q['createdAfter'], $q['createdBefore']]);
+            $this->assertArrayNotHasKey('origin', $q);
+        }
+        [$vs, $http] = self::client([['transcriptions' => []]]);
+        $vs->transcriptions->listPage(shared: false, origin: 'api', broadcast: 'b1', limit: 5);
+        $this->assertEquals(['lifecycle' => 'active', 'limit' => '5', 'origin' => 'api', 'broadcast' => 'b1', 'shared' => 'false'], $http->query(0));
+    }
+
     public function testEventsStartAfterASeqThenFollowTheCursor(): void
     {
         $ev = static fn (int $s) => ['seq' => $s, 'kind' => 'transcript.final', 'at' => '2026-10-12T00:00:00Z', 'payload' => []];
