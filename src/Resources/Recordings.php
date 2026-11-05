@@ -181,10 +181,14 @@ final class Recordings extends Group
         ?string $listenerToken = null,
         ?string $shareCode = null,
         ?bool $consent = null,
+        ?string $voices = null,
     ): array {
         $body = ['langs' => array_values($langs)];
         if ($consent !== null) {
             $body['consent'] = $consent;
+        }
+        if ($voices !== null) {
+            $body['voices'] = $voices;
         }
         if ($voice !== null) {
             $body['voice'] = $voice;
@@ -209,8 +213,9 @@ final class Recordings extends Group
         ?int $part = null,
         ?string $listenerToken = null,
         ?string $shareCode = null,
+        ?string $voices = null,
     ): string {
-        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'voice' => $voice, 'format' => $format, 'part' => $part ?: null];
+        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'voices' => $voices, 'voice' => $voice, 'format' => $format, 'part' => $part ?: null];
         return $this->t->raw('GET', self::path($id, "/voice/{$sentence}"), query: $query, headers: ['accept' => '*/*'])->body;
     }
 
