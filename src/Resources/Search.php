@@ -21,6 +21,7 @@ final class Search extends Group
         string|\DateTimeInterface|null $createdAfter = null,
         string|\DateTimeInterface|null $createdBefore = null,
         ?bool $shared = null,
+        ?string $transcription = null,
     ): array {
         $at = static fn (string|\DateTimeInterface|null $d) => $d instanceof \DateTimeInterface ? $d->format(\DateTimeInterface::RFC3339) : $d;
         $query = [
@@ -28,6 +29,7 @@ final class Search extends Group
             'broadcasts' => $broadcasts ? implode(',', $broadcasts) : null,
             'listenerTokens' => $listenerTokens ? implode(',', $listenerTokens) : null,
             'recording' => $recording,
+            'transcription' => $transcription,
             'lang' => $lang,
             'limit' => $limit,
             'site' => $site,
