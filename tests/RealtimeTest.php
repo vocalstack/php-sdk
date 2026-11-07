@@ -78,6 +78,24 @@ final class RealtimeTest extends TestCase
         $this->assertSame('eof', $session->doneReason);
     }
 
+    public function testQueuedFramesReachOnFrameAndReArmTheDeadline(): void
+    {
+        $server = new WsServer(['frames' => [
+            ['type' => 'session.queued', 'position' => 2, 'waitedS' => 0, 'bufferedS' => 0, 'droppedS' => 0], ['$delayMs' => 300],
+            ['type' => 'session.queued', 'position' => 1, 'waitedS' => 0.3, 'bufferedS' => 0, 'droppedS' => 0], ['$delayMs' => 300],
+            ['type' => 'session.ready'], self::done(),
+        ]]);
+        $queued = [];
+        $session = RealtimeSession::connect('s1', $server->url(), readyDeadline: 0.5, onFrame: function (array $f) use (&$queued): void {
+            if ($f['type'] === 'session.queued') {
+                $queued[] = $f['position'];
+            }
+        });
+        $this->assertSame([2, 1], $queued);
+        $this->assertSame([], iterator_to_array($session->events(), false));
+        $this->assertSame('eof', $session->doneReason);
+    }
+
     public function testAnErrorBeforeReadyAndCloseBeforeReady(): void
     {
         $e = self::connectError(['frames' => [['type' => 'error', 'code' => 'invalid_options', 'message' => 'bad', 'retryable' => false]]]);

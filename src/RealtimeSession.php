@@ -16,7 +16,7 @@ final class RealtimeSession implements \IteratorAggregate
     public const KEEPALIVE_S = 20.0;
 
     public const SERVER_FRAME_TYPES = [
-        'session.loading', 'session.ready', 'transcript.committed', 'transcript.draft', 'transcript.words',
+        'session.loading', 'session.queued', 'session.ready', 'transcript.committed', 'transcript.draft', 'transcript.words',
         'transcript.amended', 'transcript.latency', 'transcript.speaker', 'transcript.speakerGender',
         'transcript.speakerIdentified', 'transcript.speakerNumbers', 'transcript.sentence', 'transcript.translated', 'transcript.voice',
         'transcript.voiceStatus', 'transcript.progress', 'stream.pull', 'source.progress', 'source.prepared',
