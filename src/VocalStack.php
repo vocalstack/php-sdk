@@ -7,7 +7,6 @@ namespace VocalStack;
 use VocalStack\Http\CurlHttpClient;
 use VocalStack\Http\HttpClient;
 use VocalStack\Http\Transport;
-use VocalStack\Resources\Batches;
 use VocalStack\Resources\Billing;
 use VocalStack\Resources\Broadcasts;
 use VocalStack\Resources\Connect;
@@ -27,7 +26,7 @@ use VocalStack\Resources\Voices;
 
 final class VocalStack
 {
-    public const VERSION = '1.1.0';
+    public const VERSION = '2.0.0';
 
     public const DEFAULT_BASE_URL = Transport::DEFAULT_BASE_URL;
 
@@ -35,7 +34,6 @@ final class VocalStack
     public readonly Realtime $realtime;
     public readonly Broadcasts $broadcasts;
     public readonly Transcriptions $transcriptions;
-    public readonly Batches $batches;
     public readonly Recordings $recordings;
     public readonly Jobs $jobs;
     public readonly Corrections $corrections;
@@ -75,7 +73,6 @@ final class VocalStack
         $this->realtime = new Realtime($t, $readyDeadline);
         $this->broadcasts = new Broadcasts($t);
         $this->transcriptions = new Transcriptions($t);
-        $this->batches = new Batches($t);
         $this->recordings = new Recordings($t, $readyDeadline);
         $this->jobs = new Jobs($t);
         $this->corrections = new Corrections($t);
