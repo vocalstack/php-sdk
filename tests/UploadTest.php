@@ -83,21 +83,39 @@ final class UploadTest extends TestCase
         $this->assertSame('k2', $http->calls[1]['headers']['idempotency-key']);
     }
 
-    public function testVoicesCreateSendsAJsonMetaPartEvenWithoutASample(): void
+    public function testSpeakersCreateSendsAJsonMetaPartEvenWithoutASample(): void
     {
         [$vs, $http] = self::client();
-        $vs->voices->create('Ana', sampleUrl: 'https://x.test/s.mp3');
+        $vs->speakers->create('Ana', sampleUrl: 'https://x.test/s.mp3', consent: true);
         $parts = $http->calls[0]['body']->parts();
+        $this->assertSame('http://api.test/v1/speakers', $http->calls[0]['url']);
         $this->assertCount(1, $parts);
         $this->assertSame('meta', $parts[0]->name);
         $this->assertSame('application/json', $parts[0]->contentType);
         $this->assertNull($parts[0]->filename);
         $this->assertSame(['name' => 'Ana', 'sampleUrl' => 'https://x.test/s.mp3', 'consent' => true], json_decode($parts[0]->value, true));
-        $vs->voices->create('Draft', sample: Upload::bytes('webm'), draft: true);
+        $vs->speakers->create('Draft', sample: Upload::bytes('webm'), draft: true);
         $parts = $http->calls[1]['body']->parts();
-        $this->assertSame(['name' => 'Draft', 'draft' => true, 'consent' => false], json_decode($parts[0]->value, true));
+        $this->assertSame(['name' => 'Draft', 'draft' => true], json_decode($parts[0]->value, true));
         $this->assertSame('sample.webm', $parts[1]->filename);
         $this->assertSame('video/webm', $parts[1]->contentType);
+    }
+
+    public function testSpeakersAreSavedWithoutConsentUnlessItIsGiven(): void
+    {
+        [$vs, $http] = self::client();
+        $vs->speakers->create('Ana', sample: Upload::bytes('webm'));
+        $this->assertSame(['name' => 'Ana'], json_decode($http->calls[0]['body']->parts()[0]->value, true));
+        $vs->speakers->createFromAppearance('tx-1', 2, 'Ana', idempotencyKey: 'k-sa');
+        $this->assertSame('http://api.test/v1/speakers/from-appearance', $http->calls[1]['url']);
+        $this->assertSame('{"transcriptionId":"tx-1","appearance":2,"name":"Ana"}', $http->calls[1]['content']);
+        $this->assertSame('k-sa', $http->calls[1]['headers']['idempotency-key']);
+        $vs->speakers->createFromAppearance('tx-1', 2, 'Ana', recordingId: 'rec-1', consent: false);
+        $this->assertSame('{"transcriptionId":"tx-1","recordingId":"rec-1","appearance":2,"name":"Ana","consent":false}', $http->calls[2]['content']);
+        $vs->transcriptions->nameAppearance('tx-1', 3, 'Host');
+        $this->assertSame('PUT', $http->calls[3]['method']);
+        $this->assertSame('http://api.test/v1/transcriptions/tx-1/appearances/3', $http->calls[3]['url']);
+        $this->assertSame('{"name":"Host"}', $http->calls[3]['content']);
     }
 
     public function testHeadersQueriesAndBodiesAsOnTheWire(): void

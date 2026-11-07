@@ -56,8 +56,8 @@ composer require vocalstack/sdk
 | recording | one take inside a broadcast or a transcription | `$vs->recordings` |
 | job | a file or link recording's transcription work | `$vs->jobs` |
 
-The other groups: `$vs->corrections`, `$vs->shareLinks`, `$vs->voices`,
-`$vs->search`, `$vs->me`, `$vs->connect`, `$vs->billing`, `$vs->languages`,
+The other groups: `$vs->corrections`, `$vs->shareLinks`, `$vs->speakers`,
+`$vs->voices`, `$vs->search`, `$vs->me`, `$vs->connect`, `$vs->billing`, `$vs->languages`,
 `$vs->rtmp`, `$vs->events`, `$vs->meta`. Method names are the document's
 `operationId`s in camelCase (`broadcasts->startRecording` is
 `POST /v1/broadcasts/{id}/recordings`). Ids are positional; a request body is
@@ -65,7 +65,7 @@ one array with the wire's camelCase keys (`['settings' => ['spokenLanguage' => '
 a few fixed options are named arguments (`idempotencyKey:`, `lang:`,
 `listenerToken:`). Lists return lists (every page of a paged list; the
 `...Page` methods read one); binary answers (`recordings->export`,
-`recordings->clip`, `voices->sample`, ...) return the bytes as a string.
+`recordings->clip`, `speakers->sample`, ...) return the bytes as a string.
 
 A file to upload is a path string, a stream resource, or
 `VocalStack\Upload::bytes($data, 'name.mp3')`. Paths and streams are streamed,

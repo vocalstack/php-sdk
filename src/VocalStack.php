@@ -20,6 +20,7 @@ use VocalStack\Resources\Recordings;
 use VocalStack\Resources\Rtmp;
 use VocalStack\Resources\Search;
 use VocalStack\Resources\ShareLinks;
+use VocalStack\Resources\Speakers;
 use VocalStack\Resources\Tags;
 use VocalStack\Resources\Transcriptions;
 use VocalStack\Resources\Voices;
@@ -39,6 +40,7 @@ final class VocalStack
     public readonly Corrections $corrections;
     public readonly ShareLinks $shareLinks;
     public readonly Tags $tags;
+    public readonly Speakers $speakers;
     public readonly Voices $voices;
     public readonly Search $search;
     public readonly Me $me;
@@ -78,6 +80,7 @@ final class VocalStack
         $this->corrections = new Corrections($t);
         $this->shareLinks = new ShareLinks($t);
         $this->tags = new Tags($t);
+        $this->speakers = new Speakers($t);
         $this->voices = new Voices($t);
         $this->search = new Search($t);
         $this->me = new Me($t);

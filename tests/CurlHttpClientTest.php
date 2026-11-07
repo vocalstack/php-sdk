@@ -89,7 +89,7 @@ final class CurlHttpClientTest extends TestCase
     {
         $proc = popen('printf "chunked-body"', 'r');
         try {
-            $got = self::vs()->voices->create('Ana', sample: Upload::stream($proc, 'ana.webm'));
+            $got = self::vs()->speakers->create('Ana', sample: Upload::stream($proc, 'ana.webm'), consent: true);
             $this->assertNull($got['contentLength']);
             $this->assertSame(sha1('chunked-body'), $got['files']['sample']['sha1']);
             $this->assertSame(['name' => 'Ana', 'consent' => true], json_decode($got['post']['meta'], true));

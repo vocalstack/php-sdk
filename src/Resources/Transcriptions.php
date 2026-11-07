@@ -120,4 +120,9 @@ final class Transcriptions extends ParentResource
     {
         return $this->t->json('DELETE', $this->path($id, '/broadcasts/' . self::p($broadcastId)));
     }
+
+    public function nameAppearance(string $id, int $appearance, ?string $name): void
+    {
+        $this->t->json('PUT', $this->path($id, '/appearances/' . self::p($appearance)), json: ['name' => $name]);
+    }
 }

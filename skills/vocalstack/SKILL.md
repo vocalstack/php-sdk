@@ -241,8 +241,9 @@ try {
 - The other groups: `$vs->transcriptions` (`list`, `get`, `update`, `archive`,
   `restore`, `purge`, `listShareLinks`, `createShareLink`), `$vs->recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe`),
-  `$vs->corrections`, `$vs->shareLinks`, `$vs->voices`, `$vs->broadcasts`,
-  `$vs->me`, `$vs->connect` (`token`; PKCE helpers in `VocalStack\Connect\Pkce`),
+  `$vs->corrections`, `$vs->shareLinks`, `$vs->speakers`, `$vs->voices`,
+  `$vs->broadcasts`, `$vs->me`, `$vs->connect` (`token`; PKCE helpers in
+  `VocalStack\Connect\Pkce`),
   `$vs->billing` (`get`, `usage`), `$vs->languages`, `$vs->rtmp`,
   `$vs->events`, `$vs->meta`. Each method is its operation's name in the
   OpenAPI document, in camelCase (`transcriptions->create` is

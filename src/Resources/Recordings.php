@@ -224,11 +224,6 @@ final class Recordings extends Group
         return $this->t->json('GET', self::path($id, '/media-token'));
     }
 
-    public function nameSpeaker(string $id, int $speaker, ?string $name): void
-    {
-        $this->t->json('PUT', self::path($id, "/speakers/{$speaker}"), json: ['name' => $name]);
-    }
-
     public function events(string $id, ?int $after = null, ?int $limit = null): array
     {
         return self::allPages(function (?string $cursor) use ($id, $after, $limit) {
