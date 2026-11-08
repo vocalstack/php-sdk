@@ -89,6 +89,11 @@ abstract class ParentResource extends Group
         return self::many($this->t->json('GET', $this->path($id, '/share-links')), 'links');
     }
 
+    public function listScripts(string $id): array
+    {
+        return self::many($this->t->json('GET', $this->path($id, '/scripts')), 'scripts');
+    }
+
     public function createShareLink(string $id, array $fields = []): array
     {
         return $this->t->json('POST', $this->path($id, '/share-links'), json: self::body($fields));

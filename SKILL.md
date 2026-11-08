@@ -239,7 +239,7 @@ try {
 ## More
 
 - The other groups: `$vs->transcriptions` (`list`, `get`, `update`, `archive`,
-  `restore`, `purge`, `listShareLinks`, `createShareLink`), `$vs->recordings`
+  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`), `$vs->recordings`
   (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe`),
   `$vs->corrections`, `$vs->shareLinks`, `$vs->speakers`, `$vs->voices`,
   `$vs->broadcasts`, `$vs->me`, `$vs->connect` (`token`; PKCE helpers in
