@@ -99,7 +99,7 @@ $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCA
 $tx = $vs->transcriptions->create(
     ['settings' => ['spokenLanguage' => 'en', 'speakerLabels' => 'on']],  // both optional; "auto" (default) | "on" | "off"
     // Off unless asked for: settings summary, title, summaryTranslations,
-    // voice (spoken translations), and 'shareLink' => true (a public share link).
+    // translationTts (text-to-speech of translations), and 'shareLink' => true (a public share link).
     file: $path,  // a path, a stream resource, or VocalStack\Upload::bytes($data, 'name.mp3'); streamed, not read whole
 );
 $job = $vs->jobs->wait($tx['job']['recordingId']);
