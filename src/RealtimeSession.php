@@ -39,6 +39,8 @@ final class RealtimeSession implements \IteratorAggregate
     private bool $closed = false;
     private bool $pinged = false;
     private int $reconnects = 0;
+    private float $openedAt;
+    private static float $steadyS = 30.0;
     private array $pending = [];
     private int $pendingBytes = 0;
 
@@ -52,6 +54,7 @@ final class RealtimeSession implements \IteratorAggregate
         private readonly float $readyDeadline = self::DEFAULT_READY_DEADLINE_S,
     ) {
         $this->onFrame = $onFrame === null ? null : \Closure::fromCallable($onFrame);
+        $this->openedAt = microtime(true);
     }
 
     public static function connect(
@@ -192,6 +195,9 @@ final class RealtimeSession implements \IteratorAggregate
 
     private function reconnect(): bool
     {
+        if (microtime(true) - $this->openedAt >= self::$steadyS) {
+            $this->reconnects = 0;
+        }
         while ($this->reconnects < self::RESTART_TRIES && !$this->closed && $this->streamUrl !== null) {
             usleep((int) (1_000_000 * (2 ** $this->reconnects)));
             $this->reconnects++;
@@ -203,6 +209,7 @@ final class RealtimeSession implements \IteratorAggregate
                 }
                 continue;
             }
+            $this->openedAt = microtime(true);
             $waiting = $this->pending;
             $this->pending = [];
             $this->pendingBytes = 0;

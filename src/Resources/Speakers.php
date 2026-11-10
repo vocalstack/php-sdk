@@ -99,6 +99,12 @@ final class Speakers extends Group
         return $this->t->json('POST', '/v1/speakers/from-appearance', json: $body, idempotencyKey: $idempotencyKey);
     }
 
+    public function appearanceSamples(string $transcriptionId, int $appearance, ?string $recordingId = null, ?array $spans = null): array
+    {
+        $picked = $spans ? implode(',', array_map(fn (array $s): string => $s['start'] . '-' . $s['end'], array_values($spans))) : null;
+        return $this->t->json('GET', '/v1/speakers/from-appearance/samples', query: ['transcriptionId' => $transcriptionId, 'recordingId' => $recordingId, 'appearance' => $appearance, 'spans' => $picked]);
+    }
+
     public function setConsent(string $id, string $consent, ?string $name = null): array
     {
         return $this->t->json('POST', '/v1/speakers/' . self::p($id) . '/consent', json: self::body(['consent' => $consent, 'name' => $name]));

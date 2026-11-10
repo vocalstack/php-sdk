@@ -65,6 +65,32 @@ final class ReconnectTest extends TestCase
         $this->assertTrue($session->ended());
     }
 
+    public function testSocketsThatStayedUpStartTheTriesAnew(): void
+    {
+        $steady = new \ReflectionProperty(RealtimeSession::class, 'steadyS');
+        $before = $steady->getValue();
+        $steady->setValue(null, 0.2);
+        try {
+            $again = ['frames' => [self::READY, ['$delayMs' => 300], ['$close' => RealtimeSession::RESTART_CLOSE]]];
+            $server = new WsServer(['connections' => [
+                $again, $again, $again, $again, $again,
+                ['frames' => [self::READY, ['$waitEof' => true], self::committed('still here'), self::done()]],
+            ]]);
+            $session = RealtimeSession::connect('s', $server->url(), readyDeadline: 2.0);
+            $this->assertSame([], $session->poll(8.0));
+            $this->assertFalse($session->ended(), 'five restart closes, each after a steady socket');
+            $session->eof();
+            $texts = [];
+            foreach ($session as $ev) {
+                $texts[] = $ev['segment']['text'];
+            }
+            $this->assertSame(['still here'], $texts);
+            $this->assertSame('eof', $session->doneReason);
+        } finally {
+            $steady->setValue(null, $before);
+        }
+    }
+
     public function testAnyOtherCloseIsEngineLostAtOnce(): void
     {
         $server = new WsServer(['connections' => [

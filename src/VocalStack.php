@@ -23,11 +23,12 @@ use VocalStack\Resources\ShareLinks;
 use VocalStack\Resources\Speakers;
 use VocalStack\Resources\Tags;
 use VocalStack\Resources\Transcriptions;
+use VocalStack\Resources\Uploads;
 use VocalStack\Resources\Voices;
 
 final class VocalStack
 {
-    public const VERSION = '2.1.0';
+    public const VERSION = '2.1.5';
 
     public const DEFAULT_BASE_URL = Transport::DEFAULT_BASE_URL;
 
@@ -35,6 +36,7 @@ final class VocalStack
     public readonly Realtime $realtime;
     public readonly Broadcasts $broadcasts;
     public readonly Transcriptions $transcriptions;
+    public readonly Uploads $uploads;
     public readonly Recordings $recordings;
     public readonly Jobs $jobs;
     public readonly Corrections $corrections;
@@ -75,6 +77,7 @@ final class VocalStack
         $this->realtime = new Realtime($t, $readyDeadline);
         $this->broadcasts = new Broadcasts($t);
         $this->transcriptions = new Transcriptions($t);
+        $this->uploads = new Uploads($t);
         $this->recordings = new Recordings($t, $readyDeadline);
         $this->jobs = new Jobs($t);
         $this->corrections = new Corrections($t);
