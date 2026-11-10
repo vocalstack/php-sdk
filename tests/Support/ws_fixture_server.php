@@ -113,6 +113,9 @@ if (isset($scn['rejectUpgrade'])) {
         : '';
     fwrite($conn, "HTTP/1.1 {$status} Rejected\r\ncontent-type: application/json\r\ncontent-length: " . strlen($body) . "\r\nconnection: close\r\n\r\n{$body}");
     fclose($conn);
+    if (isset($scenario['connections'])) {
+        continue;
+    }
     exit(0);
 }
 if (!empty($scn['hang'])) {
@@ -137,6 +140,10 @@ foreach ($scn['frames'] ?? [] as $entry) {
     if (!empty($entry['$close'])) {
         $closeCode = is_int($entry['$close']) ? $entry['$close'] : null;
         break;
+    }
+    if (!empty($entry['$drop'])) {
+        fclose($conn);
+        continue 2;
     }
     if (isset($entry['$delayMs'])) {
         $until = microtime(true) + $entry['$delayMs'] / 1000;

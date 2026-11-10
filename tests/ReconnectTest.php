@@ -91,6 +91,86 @@ final class ReconnectTest extends TestCase
         }
     }
 
+    private static function lost(array $then): WsServer
+    {
+        $again = ['rejectUpgrade' => ['status' => 503, 'body' => ['code' => 'engine_unavailable', 'message' => 'The connection to this session was lost and is being restored. Try again in a moment.', 'data' => ['retryable' => true]]]];
+        $gone = ['rejectUpgrade' => ['status' => 410, 'body' => ['code' => 'session_expired', 'message' => 'session token connect-by deadline has passed', 'data' => ['retryable' => false]]]];
+        $served = ['frames' => [self::READY, ['$waitEof' => true], self::committed('carried on'), self::done()]];
+        $connections = [['frames' => [self::READY, ['$delayMs' => 200], ['$drop' => true]]]];
+        foreach ($then as $how) {
+            $connections[] = ['again' => $again, 'gone' => $gone, 'served' => $served][$how];
+        }
+        return new WsServer(['connections' => $connections]);
+    }
+
+    private static function quickWaits(): \Closure
+    {
+        $waits = new \ReflectionProperty(RealtimeSession::class, 'lostWaitsS');
+        $before = $waits->getValue();
+        $waits->setValue(null, [0.05, 0.05, 0.05, 0.05]);
+        $steady = new \ReflectionProperty(RealtimeSession::class, 'steadyS');
+        $steadyBefore = $steady->getValue();
+        $steady->setValue(null, 0.1);
+        return function () use ($waits, $before, $steady, $steadyBefore): void {
+            $waits->setValue(null, $before);
+            $steady->setValue(null, $steadyBefore);
+        };
+    }
+
+    public function testASocketLostWithNoCloseFrameSoonAfterItOpenedIsEngineLostWithNoTry(): void
+    {
+        $server = self::lost(['served']);
+        $session = RealtimeSession::connect('s', $server->url(), readyDeadline: 2.0);
+        $t0 = microtime(true);
+        try {
+            iterator_to_array($session->events());
+            $this->fail('no exception');
+        } catch (VocalStackException $e) {
+            $this->assertSame('engine_lost', $e->errorCode);
+        }
+        $this->assertLessThan(0.9, microtime(true) - $t0, 'no reconnect wait for a socket that never stayed up');
+    }
+
+    public function testASocketLostWithNoCloseFrameIsOpenedAgainWhileTheServerSaysTryAgain(): void
+    {
+        $restore = self::quickWaits();
+        try {
+            $server = self::lost(['again', 'again', 'served']);
+            $session = RealtimeSession::connect('s', $server->url(), readyDeadline: 2.0);
+            $this->assertSame([], $session->poll(1.5));
+            $this->assertFalse($session->ended(), 'the server its socket was on died; the session went on');
+            $session->eof();
+            $texts = [];
+            foreach ($session as $ev) {
+                $texts[] = $ev['segment']['text'];
+            }
+            $this->assertSame(['carried on'], $texts);
+            $this->assertSame('eof', $session->doneReason);
+        } finally {
+            $restore();
+        }
+    }
+
+    public function testASocketLostWithNoCloseFrameIsEngineLostWhenItCannotGoOn(): void
+    {
+        $restore = self::quickWaits();
+        try {
+            foreach ([['gone', 'served'], ['again', 'again', 'again', 'again', 'served']] as $then) {
+                $server = self::lost($then);
+                $session = RealtimeSession::connect('s', $server->url(), readyDeadline: 2.0);
+                try {
+                    iterator_to_array($session->events());
+                    $this->fail('no exception');
+                } catch (VocalStackException $e) {
+                    $this->assertSame('engine_lost', $e->errorCode, implode(',', $then));
+                }
+                $this->assertTrue($session->ended());
+            }
+        } finally {
+            $restore();
+        }
+    }
+
     public function testAnyOtherCloseIsEngineLostAtOnce(): void
     {
         $server = new WsServer(['connections' => [

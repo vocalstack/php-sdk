@@ -41,6 +41,8 @@ final class RealtimeSession implements \IteratorAggregate
     private int $reconnects = 0;
     private float $openedAt;
     private static float $steadyS = 30.0;
+    private static array $lostWaitsS = [1.0, 2.0, 4.0, 8.0, 15.0, 15.0, 15.0, 15.0];
+    private static ?\WeakMap $answered = null;
     private array $pending = [];
     private int $pendingBytes = 0;
 
@@ -80,7 +82,10 @@ final class RealtimeSession implements \IteratorAggregate
         try {
             $ws = WebSocket::connect($streamUrl, [], $readyDeadline);
         } catch (WebSocketRefused $e) {
-            throw self::upgradeRefused($e->status, $e->body);
+            $refused = self::upgradeRefused($e->status, $e->body);
+            self::$answered ??= new \WeakMap();
+            self::$answered[$refused] = true;
+            throw $refused;
         } catch (WebSocketTimeout $e) {
             throw new VocalStackException(
                 'capacity_exceeded',
@@ -191,6 +196,33 @@ final class RealtimeSession implements \IteratorAggregate
             $this->pending[] = [$binary, $data];
             $this->pendingBytes += strlen($data);
         }
+    }
+
+    private function recover(): bool
+    {
+        foreach (self::$lostWaitsS as $wait) {
+            usleep((int) (1_000_000 * $wait));
+            if ($this->closed || $this->streamUrl === null) {
+                break;
+            }
+            try {
+                $this->ws = self::openReady($this->streamUrl, $this->readyDeadline, fn (array $f) => $this->hand($f));
+            } catch (VocalStackException $e) {
+                if ($e->retryable && isset(self::$answered[$e])) {
+                    continue;
+                }
+                break;
+            }
+            $this->openedAt = microtime(true);
+            $waiting = $this->pending;
+            $this->pending = [];
+            $this->pendingBytes = 0;
+            foreach ($waiting as [$binary, $data]) {
+                $this->send($binary, $data);
+            }
+            return true;
+        }
+        return false;
     }
 
     private function reconnect(): bool
@@ -353,7 +385,11 @@ final class RealtimeSession implements \IteratorAggregate
                 $this->error = self::engineLost(self::RESTART_CLOSE);
                 throw $this->error;
             }
+            if ($payload === '' && microtime(true) - $this->openedAt >= self::$steadyS && $this->recover()) {
+                return self::SKIP;
+            }
             $this->closed = true;
+            $this->pending = [];
             $this->error = self::engineLost($payload === '' ? null : (int) $payload);
             throw $this->error;
         }
