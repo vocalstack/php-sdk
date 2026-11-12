@@ -41,6 +41,8 @@ final class RealtimeSession implements \IteratorAggregate
     private int $reconnects = 0;
     private float $openedAt;
     private static float $steadyS = 30.0;
+    private const EARLY_RECOVERIES = 1;
+    private int $earlyRecoveries = 0;
     private static array $lostWaitsS = [1.0, 2.0, 4.0, 8.0, 15.0, 15.0, 15.0, 15.0];
     private static ?\WeakMap $answered = null;
     private array $pending = [];
@@ -385,8 +387,14 @@ final class RealtimeSession implements \IteratorAggregate
                 $this->error = self::engineLost(self::RESTART_CLOSE);
                 throw $this->error;
             }
-            if ($payload === '' && microtime(true) - $this->openedAt >= self::$steadyS && $this->recover()) {
-                return self::SKIP;
+            $young = microtime(true) - $this->openedAt < self::$steadyS;
+            if ($payload === '' && (!$young || $this->earlyRecoveries < self::EARLY_RECOVERIES)) {
+                if ($young) {
+                    $this->earlyRecoveries++;
+                }
+                if ($this->recover()) {
+                    return self::SKIP;
+                }
             }
             $this->closed = true;
             $this->pending = [];
