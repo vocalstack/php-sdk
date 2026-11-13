@@ -8,21 +8,23 @@ description: Use when writing PHP code that calls the VocalStack speech API with
 The VocalStack API transcribes speech (files, links, live audio), with speaker
 labels and translation. The `vocalstack/sdk` package has one synchronous
 client, `VocalStack\VocalStack`, with one group per resource:
-`$vs->transcriptions`, `$vs->jobs`, `$vs->recordings`, `$vs->broadcasts`,
-`$vs->search`, `$vs->realtime` and a few more (listed at the end). Answers are
-associative arrays with the wire's camelCase keys (`$job['recordingId']`).
+`$vs->transcriptions`, `$vs->broadcasts`, `$vs->search`, `$vs->realtime` and a
+few more (listed at the end). Answers are associative arrays with the wire's
+camelCase keys (`$job['transcriptionId']`).
 
 ## What is what
 
 - A **transcription** is a file, a link, a microphone or a stream, transcribed
-  and stored. Create one with `$vs->transcriptions->create([...])`.
-- A **recording** is one take inside it. Its id (`recordingId`) is what you
-  read the transcript and exports with: `$vs->recordings->transcript($recordingId)`.
-- A **job** is a file or link recording's transcription work:
-  `$vs->jobs->wait($recordingId)` polls it until it is `done` or `failed`
+  and stored. Create one with `$vs->transcriptions->create([...])`. Its id is
+  what you read the transcript and exports with:
+  `$vs->transcriptions->transcript($id)`. A live one stays one transcription
+  however often it is paused and resumed.
+- A **job** is a file or link transcription's work:
+  `$vs->transcriptions->waitForJob($id)` polls it until it is `done` or `failed`
   (`onProgress: fn (array $job) => ...` sees each read: `$job['state']`,
   `$job['progress']['pct']`).
-- A **broadcast** is a link listeners open to follow a live recording.
+- A **broadcast** is a link listeners open to follow a live transcription.
+  Each `$vs->broadcasts->record($id)` starts a new live transcription.
 - A **realtime session** (`$vs->realtime`) is a socket you stream audio into
   and read the transcript from. Nothing is stored. "Session" means only this.
 
@@ -74,16 +76,15 @@ $tx = $vs->transcriptions->create([
     'url' => 'https://raw.githubusercontent.com/openai/whisper/main/tests/jfk.flac',
     'name' => 'JFK sample',
 ]);
-$rec = $tx['job']['recordingId'];
-$job = $vs->jobs->wait($rec);  // queued -> fetching -> transcribing -> done | failed
+$job = $vs->transcriptions->waitForJob($tx['id']);  // queued -> fetching -> transcribing -> done | failed
 if ($job['state'] !== 'done') {
     exit("transcription {$job['state']}: " . json_encode($job['error'] ?? null) . "\n");
 }
-$snap = $vs->recordings->transcript($rec);
+$snap = $vs->transcriptions->transcript($tx['id']);
 foreach ($snap['sentences'] as $s) {
     echo $s['speaker'] >= 0 ? "[speaker {$s['speaker']}] {$s['text']}" : $s['text'], "\n";
 }
-echo "recording_id {$rec}\n";
+echo "transcription_id {$tx['id']}\n";
 ```
 
 ## 2. Transcribe a local file
@@ -102,11 +103,11 @@ $tx = $vs->transcriptions->create(
     // translationTts (text-to-speech of translations), and 'shareLink' => true (a public share link).
     file: $path,  // a path, a stream resource, or VocalStack\Upload::bytes($data, 'name.mp3'); streamed, not read whole
 );
-$job = $vs->jobs->wait($tx['job']['recordingId']);
+$job = $vs->transcriptions->waitForJob($tx['id']);
 if ($job['state'] !== 'done') {
     exit("transcription {$job['state']}: " . json_encode($job['error'] ?? null) . "\n");
 }
-$snap = $vs->recordings->transcript($job['recordingId']);
+$snap = $vs->transcriptions->transcript($tx['id']);
 echo implode(' ', array_column($snap['sentences'], 'text')), "\n";
 ```
 
@@ -122,17 +123,17 @@ require 'vendor/autoload.php';
 
 use VocalStack\VocalStack;
 
-$rec = $argv[1];
+$id = $argv[1];  // a transcription id
 $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
-$snap = $vs->recordings->transcript($rec);
+$snap = $vs->transcriptions->transcript($id);
 printf("%d segments, %d sentences, state %s\n", count($snap['segments']), count($snap['sentences']), $snap['state']);
-file_put_contents('transcript.srt', $vs->recordings->export($rec, 'srt'));
+file_put_contents('transcript.srt', $vs->transcriptions->export($id, 'srt'));
 ```
 
 ## 4. Live transcription from a microphone or a file
 
 A live transcription takes raw PCM: 32-bit float little-endian, 16 kHz, mono.
-Create it, start a recording, and open the publisher socket the grant names
+Create it, start it, and open the publisher socket the grant names
 (this needs `phrity/websocket`). Here ffmpeg decodes a file, and
 `paceRealtime` sends it at realtime speed, yields the transcript events as
 they arrive, and calls `eof()` at the end. For a microphone, read ffmpeg's
@@ -152,21 +153,21 @@ use function VocalStack\paceRealtime;
 $path = $argv[1];
 $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
 $tx = $vs->transcriptions->createLive(['name' => 'Live demo', 'settings' => ['spokenLanguage' => 'en']]);
-$grant = $vs->transcriptions->startRecording($tx['id']);
+$grant = $vs->transcriptions->start($tx['id']);
 
 $pcm = shell_exec('ffmpeg -loglevel error -i ' . escapeshellarg($path) . ' -f f32le -ac 1 -ar 16000 -');
 
 // A cold engine can take a while to load, so allow a long ready deadline.
-$stream = $vs->recordings->publish($grant, readyDeadline: 180);
-foreach (paceRealtime($stream, $pcm) as $event) {  // then eof(), which ends the recording
+$stream = $vs->transcriptions->publish($grant, readyDeadline: 180);
+foreach (paceRealtime($stream, $pcm) as $event) {  // then eof(), which ends the transcription
     if ($event['type'] === 'transcript.committed') {
         echo "[speaker {$event['segment']['speaker']}] {$event['segment']['text']}\n";
     }
 }
 $stream->close();
 
-// To end a recording without eof(): $vs->recordings->pause($id), then $vs->recordings->stop($id).
-$snap = $vs->recordings->transcript($grant['recording']['id']);
+// To end it without eof(): $vs->transcriptions->pause($tx['id']), then $vs->transcriptions->stop($tx['id']).
+$snap = $vs->transcriptions->transcript($tx['id']);
 echo 'final: ', implode(' ', array_column($snap['sentences'], 'text')), "\n";
 ```
 
@@ -185,7 +186,7 @@ $q = $argv[1];  // 2+ characters
 $vs = new VocalStack(apiKey: getenv('VOCALSTACK_API_KEY'), baseUrl: getenv('VOCALSTACK_BASE_URL') ?: null);
 $res = $vs->search->query($q, limit: 5);
 foreach ($res['hits'] as $h) {
-    printf("%s @ %.1fs [speaker %d]: %s (recording %s)\n", $h['linkName'], $h['mediaStart'], $h['speaker'], $h['text'], $h['recordingId']);
+    printf("%s @ %.1fs [speaker %d]: %s (transcription %s)\n", $h['linkName'], $h['mediaStart'], $h['speaker'], $h['text'], $h['transcriptionId']);
 }
 ```
 
@@ -239,9 +240,12 @@ try {
 ## More
 
 - The other groups: `$vs->transcriptions` (`list`, `get`, `update`, `archive`,
-  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`), `$vs->recordings`
-  (`get`, `summarize`, `summary`, `translation`, `audioUrl`, `subscribe`),
-  `$vs->corrections`, `$vs->shareLinks`, `$vs->speakers`, `$vs->voices`,
+  `restore`, `purge`, `listShareLinks`, `createShareLink`, `listScripts`,
+  `start`, `pause`, `resume`, `stop`, `publish`, `job`, `waitForJob`,
+  `summarize`, `summary`, `translation`, `export`, `audio`, `subscribe`,
+  `corrections`, `applyCorrections`, `voice`, `requestVoice`, `history`),
+  `$vs->corrections` (`revert`), `$vs->shareLinks`, `$vs->speakers` (with `invite`, `listInvites`, `renewInvite`,
+  `cancelInvite`), `$vs->speakerInvites` (the invited person's link, no key), `$vs->voices`,
   `$vs->broadcasts`, `$vs->me`, `$vs->connect` (`token`; PKCE helpers in
   `VocalStack\Connect\Pkce`),
   `$vs->billing` (`get`, `usage`), `$vs->languages`, `$vs->rtmp`,

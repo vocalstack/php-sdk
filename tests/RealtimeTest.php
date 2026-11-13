@@ -229,12 +229,12 @@ final class RealtimeTest extends TestCase
     {
         $server = new WsServer(['frames' => [['type' => 'session.ready'], self::done('cancelled')]]);
         $vs = new VocalStack(apiKey: 'vs_key_x', baseUrl: 'http://api.test', httpClient: new FakeHttpClient([[200, null]]));
-        $session = $vs->recordings->publish(['streamUrl' => $server->url(), 'recording' => ['id' => 'r1']]);
-        $this->assertSame('r1', $session->sessionId);
+        $session = $vs->transcriptions->publish(['streamUrl' => $server->url(), 'transcription' => ['id' => 't1']]);
+        $this->assertSame('t1', $session->sessionId);
         iterator_to_array($session);
         $this->assertSame('cancelled', $session->doneReason);
         try {
-            $vs->recordings->publish(['recording' => ['id' => 'r1']]);
+            $vs->transcriptions->publish(['transcription' => ['id' => 't1']]);
             $this->fail('no exception');
         } catch (VocalStackException $e) {
             $this->assertSame('invalid_state', $e->errorCode);
@@ -245,10 +245,10 @@ final class RealtimeTest extends TestCase
     {
         $server = new WsServer(['frames' => [['type' => 'subscribe.ready', 'lastSeq' => 3]]]);
         $vs = new VocalStack(apiKey: 'vs_key_x', baseUrl: "http://127.0.0.1:{$server->port}", deviceId: 'dev1', httpClient: new FakeHttpClient([[200, null]]));
-        $ws = $vs->recordings->subscribe('r 1', lang: 'fr');
+        $ws = $vs->transcriptions->subscribe('t 1', lang: 'fr');
         $this->assertSame([['type' => 'subscribe.ready', 'lastSeq' => 3]], iterator_to_array($ws->messages(), false));
         $req = $server->request();
         $this->assertSame('Bearer vs_key_x', $req['headers']['authorization']);
-        $this->assertStringStartsWith('GET /v1/recordings/r%201/subscribe?lang=fr&device=dev1 ', $req['head']);
+        $this->assertStringStartsWith('GET /v1/transcriptions/t%201/subscribe?lang=fr&device=dev1 ', $req['head']);
     }
 }

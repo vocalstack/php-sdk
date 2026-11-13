@@ -14,6 +14,11 @@ final class Broadcasts extends ParentResource
         return $this->t->json('POST', self::BASE, json: self::body($fields), idempotencyKey: $idempotencyKey);
     }
 
+    public function record(string $id, array $fields = [], ?string $idempotencyKey = null): array
+    {
+        return $this->t->json('POST', $this->path($id, '/record'), json: self::body($fields), idempotencyKey: $idempotencyKey);
+    }
+
     public function addAudioSource(string $id, array $fields): array
     {
         return $this->t->json('POST', $this->path($id, '/audio-sources'), json: self::body($fields));

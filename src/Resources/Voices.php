@@ -10,12 +10,12 @@ final class Voices extends Group
 {
     public function available(
         string $lang,
-        ?string $recording = null,
+        ?string $transcription = null,
         ?string $listenerToken = null,
         ?string $shareCode = null,
         bool $asOwner = true,
     ): array {
-        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'recording' => $recording];
+        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'transcription' => $transcription];
         return $this->t->json('GET', '/v1/voices/available', query: $query, anonymous: !$asOwner);
     }
 

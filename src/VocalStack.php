@@ -12,14 +12,13 @@ use VocalStack\Resources\Broadcasts;
 use VocalStack\Resources\Connect;
 use VocalStack\Resources\Corrections;
 use VocalStack\Resources\Events;
-use VocalStack\Resources\Jobs;
 use VocalStack\Resources\Languages;
 use VocalStack\Resources\Me;
 use VocalStack\Resources\Meta;
-use VocalStack\Resources\Recordings;
 use VocalStack\Resources\Rtmp;
 use VocalStack\Resources\Search;
 use VocalStack\Resources\ShareLinks;
+use VocalStack\Resources\SpeakerInvites;
 use VocalStack\Resources\Speakers;
 use VocalStack\Resources\Tags;
 use VocalStack\Resources\Transcriptions;
@@ -28,7 +27,7 @@ use VocalStack\Resources\Voices;
 
 final class VocalStack
 {
-    public const VERSION = '2.1.8';
+    public const VERSION = '2.2.0';
 
     public const DEFAULT_BASE_URL = Transport::DEFAULT_BASE_URL;
 
@@ -37,12 +36,11 @@ final class VocalStack
     public readonly Broadcasts $broadcasts;
     public readonly Transcriptions $transcriptions;
     public readonly Uploads $uploads;
-    public readonly Recordings $recordings;
-    public readonly Jobs $jobs;
     public readonly Corrections $corrections;
     public readonly ShareLinks $shareLinks;
     public readonly Tags $tags;
     public readonly Speakers $speakers;
+    public readonly SpeakerInvites $speakerInvites;
     public readonly Voices $voices;
     public readonly Search $search;
     public readonly Me $me;
@@ -76,14 +74,13 @@ final class VocalStack
         $this->baseUrl = $t->baseUrl;
         $this->realtime = new Realtime($t, $readyDeadline);
         $this->broadcasts = new Broadcasts($t);
-        $this->transcriptions = new Transcriptions($t);
+        $this->transcriptions = new Transcriptions($t, $readyDeadline);
         $this->uploads = new Uploads($t);
-        $this->recordings = new Recordings($t, $readyDeadline);
-        $this->jobs = new Jobs($t);
         $this->corrections = new Corrections($t);
         $this->shareLinks = new ShareLinks($t);
         $this->tags = new Tags($t);
         $this->speakers = new Speakers($t);
+        $this->speakerInvites = new SpeakerInvites($t);
         $this->voices = new Voices($t);
         $this->search = new Search($t);
         $this->me = new Me($t);

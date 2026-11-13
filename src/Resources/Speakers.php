@@ -77,7 +77,6 @@ final class Speakers extends Group
         string $transcriptionId,
         int $appearance,
         string $name,
-        ?string $recordingId = null,
         ?bool $consent = null,
         ?string $color = null,
         ?array $spans = null,
@@ -87,7 +86,6 @@ final class Speakers extends Group
     ): array {
         $body = self::body([
             'transcriptionId' => $transcriptionId,
-            'recordingId' => $recordingId,
             'appearance' => $appearance,
             'name' => $name,
             'consent' => $consent,
@@ -99,10 +97,10 @@ final class Speakers extends Group
         return $this->t->json('POST', '/v1/speakers/from-appearance', json: $body, idempotencyKey: $idempotencyKey);
     }
 
-    public function appearanceSamples(string $transcriptionId, int $appearance, ?string $recordingId = null, ?array $spans = null): array
+    public function appearanceSamples(string $transcriptionId, int $appearance, ?array $spans = null): array
     {
         $picked = $spans ? implode(',', array_map(fn (array $s): string => $s['start'] . '-' . $s['end'], array_values($spans))) : null;
-        return $this->t->json('GET', '/v1/speakers/from-appearance/samples', query: ['transcriptionId' => $transcriptionId, 'recordingId' => $recordingId, 'appearance' => $appearance, 'spans' => $picked]);
+        return $this->t->json('GET', '/v1/speakers/from-appearance/samples', query: ['transcriptionId' => $transcriptionId, 'appearance' => $appearance, 'spans' => $picked]);
     }
 
     public function setConsent(string $id, string $consent, ?string $name = null): array
@@ -124,12 +122,12 @@ final class Speakers extends Group
         string $id,
         ?string $lang = null,
         ?string $format = null,
-        ?string $recording = null,
+        ?string $transcription = null,
         ?string $listenerToken = null,
         ?string $shareCode = null,
         bool $asOwner = true,
     ): string {
-        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'format' => $format, 'recording' => $recording];
+        $query = Transport::listenerQuery($listenerToken, $shareCode) + ['lang' => $lang, 'format' => $format, 'transcription' => $transcription];
         return $this->t->raw(
             'GET',
             '/v1/speakers/' . self::p($id) . '/preview',
@@ -142,5 +140,25 @@ final class Speakers extends Group
     public function sample(string $id): string
     {
         return $this->t->raw('GET', '/v1/speakers/' . self::p($id) . '/sample', headers: ['accept' => '*/*'])->body;
+    }
+
+    public function listInvites(): array
+    {
+        return self::many($this->t->json('GET', '/v1/speakers/invites'), 'invites');
+    }
+
+    public function invite(string $name, ?string $email = null, ?string $gender = null, ?string $color = null): array
+    {
+        return $this->t->json('POST', '/v1/speakers/invites', json: self::body(['name' => $name, 'email' => $email, 'gender' => $gender, 'color' => $color]));
+    }
+
+    public function cancelInvite(string $id): void
+    {
+        $this->t->json('DELETE', '/v1/speakers/invites/' . self::p($id));
+    }
+
+    public function renewInvite(string $id): array
+    {
+        return $this->t->json('POST', '/v1/speakers/invites/' . self::p($id) . '/renew');
     }
 }

@@ -66,24 +66,6 @@ abstract class ParentResource extends Group
         return $this->t->json('POST', static::BASE . '/purge', json: ['ids' => array_values($ids)]);
     }
 
-    public function listRecordings(string $id, string $lifecycle = 'active'): array
-    {
-        return self::allPages(
-            fn (?string $c) => $this->t->json('GET', $this->path($id, '/recordings'), query: ['lifecycle' => $lifecycle, 'cursor' => $c]),
-            'recordings',
-        );
-    }
-
-    public function listRecordingsPage(string $id, string $lifecycle = 'active', ?string $cursor = null, ?int $limit = null): array
-    {
-        return $this->t->json('GET', $this->path($id, '/recordings'), query: ['lifecycle' => $lifecycle, 'cursor' => $cursor, 'limit' => $limit]);
-    }
-
-    public function startRecording(string $id, array $fields = [], ?string $idempotencyKey = null): array
-    {
-        return $this->t->json('POST', $this->path($id, '/recordings'), json: self::body($fields), idempotencyKey: $idempotencyKey);
-    }
-
     public function listShareLinks(string $id): array
     {
         return self::many($this->t->json('GET', $this->path($id, '/share-links')), 'links');

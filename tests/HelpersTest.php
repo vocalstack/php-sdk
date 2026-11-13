@@ -18,7 +18,7 @@ final class HelpersTest extends TestCase
         $answers = [];
         foreach ($states as [$state, $pct]) {
             $answers[] = [200, [
-                'recordingId' => 'r1', 'transcriptionId' => 't1', 'state' => $state, 'attempts' => 0,
+                'transcriptionId' => 't1', 'state' => $state, 'attempts' => 0,
                 'createdAt' => '2026-10-08T00:00:00Z', 'hasAudio' => $state === 'done',
                 'progress' => ['pct' => $pct, 'processedS' => 0.0, 'segmentsDone' => 0],
             ]];
@@ -26,12 +26,12 @@ final class HelpersTest extends TestCase
         $http = new FakeHttpClient($answers);
         $vs = new VocalStack(apiKey: 'vs_key_x', baseUrl: 'http://api.test', httpClient: $http);
         $seen = [];
-        $job = $vs->jobs->wait('r1', intervalS: 0, onProgress: function (array $j) use (&$seen): void {
+        $job = $vs->transcriptions->waitForJob('t1', intervalS: 0, onProgress: function (array $j) use (&$seen): void {
             $seen[] = "{$j['state']}:{$j['progress']['pct']}";
         });
         $this->assertSame('done', $job['state']);
         $this->assertSame(['queued:0', 'transcribing:40', 'done:100'], $seen);
-        $this->assertSame('http://api.test/v1/recordings/r1/job', $http->calls[0]['url']);
+        $this->assertSame('http://api.test/v1/transcriptions/t1/job', $http->calls[0]['url']);
     }
 
     public function testEveryFrameReachesOnFrameLifecycleFramesIncluded(): void

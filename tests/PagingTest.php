@@ -20,7 +20,7 @@ final class PagingTest extends TestCase
     {
         return [
             'id' => $id, 'code' => 'tx-1', 'name' => $id, 'kind' => 'transcription', 'source' => ['kind' => 'mic'],
-            'lifecycle' => 'active', 'ownerPrincipalId' => 'p', 'shareUrl' => '', 'settings' => [], 'recordingCount' => 0,
+            'lifecycle' => 'active', 'ownerPrincipalId' => 'p', 'shareUrl' => '', 'settings' => [], 'state' => 'idle',
             'createdAt' => '2026-10-12T00:00:00Z', 'updatedAt' => '2026-10-12T00:00:00Z',
         ];
     }
@@ -70,11 +70,12 @@ final class PagingTest extends TestCase
         $this->assertEquals(['lifecycle' => 'active', 'limit' => '5', 'origin' => 'api', 'broadcast' => 'b1', 'shared' => 'false'], $http->query(0));
     }
 
-    public function testEventsStartAfterASeqThenFollowTheCursor(): void
+    public function testHistoryStartsAfterASeqThenFollowTheCursor(): void
     {
         $ev = static fn (int $s) => ['seq' => $s, 'kind' => 'transcript.final', 'at' => '2026-10-12T00:00:00Z', 'payload' => []];
         [$vs, $http] = self::client([['events' => [$ev(4), $ev(5)], 'nextCursor' => '5'], ['events' => [$ev(6)]]]);
-        $got = $vs->recordings->events('r1', after: 3, limit: 2);
+        $got = $vs->transcriptions->history('t1', after: 3, limit: 2);
+        $this->assertStringStartsWith('http://api.test/v1/transcriptions/t1/history?', $http->calls[0]['url']);
         $this->assertSame([4, 5, 6], array_column($got, 'seq'));
         $this->assertSame('3', $http->query(0)['after']);
         $this->assertArrayNotHasKey('after', $http->query(1), 'never cursor and after together');

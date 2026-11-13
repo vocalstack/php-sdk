@@ -110,8 +110,8 @@ final class UploadTest extends TestCase
         $this->assertSame('http://api.test/v1/speakers/from-appearance', $http->calls[1]['url']);
         $this->assertSame('{"transcriptionId":"tx-1","appearance":2,"name":"Ana"}', $http->calls[1]['content']);
         $this->assertSame('k-sa', $http->calls[1]['headers']['idempotency-key']);
-        $vs->speakers->createFromAppearance('tx-1', 2, 'Ana', recordingId: 'rec-1', consent: false);
-        $this->assertSame('{"transcriptionId":"tx-1","recordingId":"rec-1","appearance":2,"name":"Ana","consent":false}', $http->calls[2]['content']);
+        $vs->speakers->createFromAppearance('tx-1', 2, 'Ana', consent: false);
+        $this->assertSame('{"transcriptionId":"tx-1","appearance":2,"name":"Ana","consent":false}', $http->calls[2]['content']);
         $vs->transcriptions->nameAppearance('tx-1', 3, 'Host');
         $this->assertSame('PUT', $http->calls[3]['method']);
         $this->assertSame('http://api.test/v1/transcriptions/tx-1/appearances/3', $http->calls[3]['url']);
@@ -121,17 +121,19 @@ final class UploadTest extends TestCase
     public function testHeadersQueriesAndBodiesAsOnTheWire(): void
     {
         [$vs, $http] = self::client([[200, []]], ['actingPrincipal' => 'org_1', 'deviceId' => 'dev']);
-        $vs->recordings->clip('r/1', 1.0, 2.5, shareCode: 'abc');
+        $vs->transcriptions->audioClip('t/1', 1.0, 2.5, shareCode: 'abc');
         $call = $http->calls[0];
-        $this->assertSame('http://api.test/v1/recordings/r%2F1/audio/clip?shareCode=abc&startS=1.0&endS=2.5', $call['url']);
+        $this->assertSame('http://api.test/v1/transcriptions/t%2F1/audio/clip?shareCode=abc&startS=1.0&endS=2.5', $call['url']);
         $this->assertSame('*/*', $call['headers']['accept']);
         $this->assertSame('Bearer vs_key_x', $call['headers']['authorization']);
         $this->assertSame('org_1', $call['headers']['x-acting-principal']);
         $this->assertSame('dev', $call['headers']['x-device-id']);
         $this->assertSame('vocalstack-php/' . VocalStack::VERSION, $call['headers']['user-agent']);
-        $vs->recordings->stop('r1');
+        $vs->transcriptions->stop('t1');
+        $this->assertSame('http://api.test/v1/transcriptions/t1/stop', $http->calls[1]['url']);
         $this->assertSame('{"reason":null}', $http->calls[1]['content']);
-        $vs->broadcasts->startRecording('b1');
+        $vs->broadcasts->record('b1');
+        $this->assertSame('http://api.test/v1/broadcasts/b1/record', $http->calls[2]['url']);
         $this->assertSame('{}', $http->calls[2]['content']);
         $vs->broadcasts->archive('b1');
         $this->assertNull($http->calls[3]['body']);
@@ -141,8 +143,16 @@ final class UploadTest extends TestCase
         $this->assertSame('http://api.test/v1/search?q=hello+world&broadcasts=a%2Cb&limit=5', $http->calls[5]['url']);
         $vs->voices->available('fr', asOwner: false);
         $this->assertArrayNotHasKey('authorization', $http->calls[6]['headers']);
-        $vs->jobs->start('r1', startS: 3.0);
+        $vs->transcriptions->startJob('t1', startS: 3.0);
+        $this->assertSame('http://api.test/v1/transcriptions/t1/job/start', $http->calls[7]['url']);
         $this->assertSame('{"startS":3.0}', $http->calls[7]['content']);
+        $vs->transcriptions->start('t1', ['takeover' => true]);
+        $this->assertSame('http://api.test/v1/transcriptions/t1/start', $http->calls[8]['url']);
+        $this->assertSame('{"takeover":true}', $http->calls[8]['content']);
+        $vs->transcriptions->get('t1', shareCode: 'abc');
+        $this->assertSame('http://api.test/v1/transcriptions/t1?shareCode=abc', $http->calls[9]['url']);
+        $vs->voices->available('es', transcription: 't1');
+        $this->assertSame('http://api.test/v1/voices/available?lang=es&transcription=t1', $http->calls[10]['url']);
     }
 
     public function testATokenCallableIsReadPerRequest(): void
@@ -162,7 +172,7 @@ final class UploadTest extends TestCase
     public function testARedirectAnswersItsLocation(): void
     {
         [$vs] = self::client([[302, null, ['location' => 'https://media.test/a.mp3']]]);
-        $this->assertSame('https://media.test/a.mp3', $vs->recordings->audioUrl('r1', kind: 'delivery'));
+        $this->assertSame('https://media.test/a.mp3', $vs->transcriptions->audio('t1', kind: 'delivery'));
     }
 
     public function testPkceMatchesRfc7636(): void
