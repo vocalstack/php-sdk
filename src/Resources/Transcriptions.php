@@ -232,8 +232,23 @@ final class Transcriptions extends ParentResource
         ?string $lang = null,
         ?string $shareCode = null,
         ?string $listenerToken = null,
+        ?string $speakerLabels = null,
+        ?string $timestamps = null,
+        ?float $startS = null,
+        ?float $endS = null,
+        ?bool $summary = null,
     ): string {
-        $query = ['format' => $format, 'lang' => $lang, 'shareCode' => $shareCode, 'listenerToken' => $listenerToken];
+        $query = [
+            'format' => $format,
+            'lang' => $lang,
+            'shareCode' => $shareCode,
+            'listenerToken' => $listenerToken,
+            'speakerLabels' => $speakerLabels,
+            'timestamps' => $timestamps,
+            'startS' => $startS === null ? null : (string) $startS,
+            'endS' => $endS === null ? null : (string) $endS,
+            'summary' => $summary ? 'true' : null,
+        ];
         return $this->t->raw('GET', $this->path($id, '/export'), query: $query, headers: ['accept' => '*/*'])->body;
     }
 

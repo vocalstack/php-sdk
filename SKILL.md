@@ -1,6 +1,6 @@
 ---
 name: vocalstack
-description: Use when writing PHP code that calls the VocalStack speech API with the vocalstack/sdk Composer package, for example to transcribe an audio or video URL or a local file, stream live audio for realtime transcription, fetch or export a transcript (JSON, SRT, XLSX, PDF), or search transcripts. Covers installing, API keys, base URLs, five copy-paste programs and error handling (401, 402, 403, 429).
+description: Use when writing PHP code that calls the VocalStack speech API with the vocalstack/sdk Composer package, for example to transcribe an audio or video URL or a local file, stream live audio for realtime transcription, fetch or export a transcript (PDF, XLSX, SRT, VTT, text, Markdown, JSON), or search transcripts. Covers installing, API keys, base URLs, five copy-paste programs and error handling (401, 402, 403, 429).
 ---
 
 # VocalStack PHP SDK
@@ -114,8 +114,9 @@ echo implode(' ', array_column($snap['sentences'], 'text')), "\n";
 ## 3. Fetch a transcript or an export file
 
 The transcript holds segments (with word timings), sentences and speakers.
-Export formats are `json`, `srt`, `xlsx` and `pdf`; add `lang: '<code>'` for a
-translated file. `export` returns the file's bytes as a string.
+Export formats are `pdf`, `xlsx`, `srt`, `vtt`, `txt`, `md` and `json`; add
+`lang: '<code>'` for a translated file, `speakerLabels: 'off'` (or `'on'`, `'auto'`),
+`timestamps: 'off'`, `startS:`/`endS:` for one part and `summary: true`. `export` returns the file's bytes as a string.
 
 ```php
 <?php

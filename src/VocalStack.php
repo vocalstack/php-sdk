@@ -27,7 +27,7 @@ use VocalStack\Resources\Voices;
 
 final class VocalStack
 {
-    public const VERSION = '2.2.0';
+    public const VERSION = '2.3.0';
 
     public const DEFAULT_BASE_URL = Transport::DEFAULT_BASE_URL;
 
